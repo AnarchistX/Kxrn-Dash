@@ -580,21 +580,23 @@
                 if (obstacle.type === 'platform' && 
                     player.x + player.width > obstacle.x && 
                     player.x < obstacle.x + obstacle.width &&
-                    Math.abs(player.y + player.height - obstacle.y) <= 2) {
+                    Math.abs((player.y + player.height) - obstacle.y) <= 2) {
                     return true;
                 }
             }
             return false;
         }
 
-        // Event listeners
-        document.addEventListener('keydown', (e) => {
-            if ((e.code === 'Space' || e.code === 'ArrowUp') && game.running && player.isAlive) {
-                if (canJump()) {
+        // Handle keyboard events
+        document.addEventListener('keydown', function(e) {
+            if (e.code === 'Space' || e.code === 'ArrowUp' || e.key === ' ') {
+                e.preventDefault(); // Prevent page scrolling
+                if (game.running && player.isAlive && canJump()) {
                     player.velocity = game.jumpForce;
                     createParticles(player.x + player.width/2, player.y + player.height, '#00FFFF');
                 }
-            } else if (e.code === 'Escape' && game.running) {
+            }
+            if (e.code === 'Escape' && game.running) {
                 if (game.isPaused) {
                     resumeGame();
                 } else {
@@ -603,21 +605,15 @@
             }
         });
 
-        // Mobile touch handling
-        let touchStartY = 0;
+        // Handle touch events
         const mobileControls = document.getElementById('mobileControls');
 
-        mobileControls.addEventListener('touchstart', (e) => {
+        mobileControls.addEventListener('touchstart', function(e) {
             e.preventDefault();
-            touchStartY = e.touches[0].clientY;
             if (game.running && player.isAlive && canJump()) {
                 player.velocity = game.jumpForce;
                 createParticles(player.x + player.width/2, player.y + player.height, '#00FFFF');
             }
-        }, { passive: false });
-
-        mobileControls.addEventListener('touchmove', (e) => {
-            e.preventDefault();
         }, { passive: false });
 
         // Prevent zooming on double tap
