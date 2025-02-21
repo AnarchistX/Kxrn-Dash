@@ -129,16 +129,32 @@
 
     <script>
         // Initialize canvas
-        const canvas = document.getElementById('gameCanvas');
-        const ctx = canvas.getContext('2d');
+        let canvas = document.getElementById('gameCanvas');
+        let ctx = canvas.getContext('2d');
         
         // Set canvas size to window size
         function resizeCanvas() {
-            canvas.width = window.innerWidth;
-            canvas.height = window.innerHeight;
+            // Get window dimensions
+            const windowWidth = window.innerWidth;
+            const windowHeight = window.innerHeight;
+            
+            // Set canvas size
+            canvas.width = windowWidth;
+            canvas.height = windowHeight;
+            
+            // Update game dimensions
+            game.width = canvas.width;
+            game.height = canvas.height;
+            
+            // Adjust player position
+            if (player) {
+                player.y = canvas.height - player.height - 1;
+            }
         }
         resizeCanvas();
-        window.addEventListener('resize', resizeCanvas);
+        window.addEventListener('resize', () => {
+            resizeCanvas();
+        });
 
         // Game elements
         const player = {
@@ -168,7 +184,9 @@
             checkpoints: [],
             lastCheckpoint: null,
             isPracticeMode: false,
-            cameraX: 0
+            cameraX: 0,
+            width: canvas.width,
+            height: canvas.height
         };
 
         // Initialize game objects
@@ -248,12 +266,40 @@
         }
 
         // Game state management
-        function startGame() {
-            hideAllMenus();
+        function init() {
+            canvas = document.getElementById('gameCanvas');
+            ctx = canvas.getContext('2d');
+            
+            // Show canvas
             canvas.style.display = 'block';
+            
+            // Set initial canvas size
+            resizeCanvas();
+
+            // Initialize game state
             resetGame();
+            
+            // Start with menu visible
+            showMenu();
+        }
+
+        function startGame() {
+            // Hide all menus
+            hideAllMenus();
+            
+            // Reset game state
+            resetGame();
+            
+            // Make sure canvas is visible
+            canvas.style.display = 'block';
+            
+            // Start game loop
             game.running = true;
+            game.isPaused = false;
             requestAnimationFrame(gameLoop);
+            
+            // Focus canvas for keyboard events
+            canvas.focus();
         }
 
         function resetGame() {
@@ -591,6 +637,31 @@
 
         // Initialize game
         window.addEventListener('load', init);
+
+        // Prevent default touch behaviors
+        document.addEventListener('touchstart', (e) => {
+            if (e.target.tagName !== 'BUTTON') {
+                e.preventDefault();
+            }
+        }, { passive: false });
+
+        document.addEventListener('touchmove', (e) => {
+            e.preventDefault();
+        }, { passive: false });
+
+        document.addEventListener('touchend', (e) => {
+            if (e.target.tagName !== 'BUTTON') {
+                e.preventDefault();
+            }
+        }, { passive: false });
+
+        // Make buttons work on mobile
+        document.querySelectorAll('button').forEach(button => {
+            button.addEventListener('touchend', (e) => {
+                e.preventDefault();
+                e.target.click();
+            });
+        });
     </script>
 </body>
 </html>
