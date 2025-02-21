@@ -122,16 +122,17 @@
             height: 40,
             velocity: 0,
             worldX: 200,
-            isAlive: true
+            isAlive: true,
+            jumping: false
         };
 
         const game = {
             running: false,
             isPaused: false,
-            speed: 8,  
-            baseSpeed: 8,
-            jumpForce: -15,
-            gravity: 0.8,
+            speed: 10,  
+            baseSpeed: 10,
+            jumpForce: -18,
+            gravity: 1.0,
             score: 0,
             coinCount: 0,
             attempts: 0,
@@ -142,7 +143,8 @@
             checkpoints: [],
             lastCheckpoint: null,
             isPracticeMode: false,
-            cameraX: 0
+            cameraX: 0,
+            jumpPressed: false
         };
 
         // Initialize game objects
@@ -150,8 +152,7 @@
             game.difficulty = 1 + Math.floor(game.score / 1000) * 0.2; 
             game.speed = game.baseSpeed * game.difficulty;
 
-            // Add coins near platforms or in jump paths
-            if (Math.random() < 0.7) {  // 70% chance to spawn coins
+            if (Math.random() < 0.7) {  
                 const coinY = canvas.height - 230 + Math.random() * 100;
                 game.coins.push({
                     x: startX + Math.random() * 300,
@@ -236,6 +237,8 @@
             player.y = canvas.height - 130;
             player.velocity = 0;
             player.isAlive = true;
+            player.jumping = false;
+            game.jumpPressed = false;
 
             if (!game.lastCheckpoint) {
                 game.score = 0;
@@ -302,11 +305,12 @@
             canvas.style.display = 'block';
             
             game.running = true;
+            game.isPaused = false; // Reset pause state
             game.lastCheckpoint = null;
             
             resetGame();
             
-            requestAnimationFrame(gameLoop);
+            requestAnimationFrame(gameLoop); // Explicitly restart the loop
         }
 
         // Game mechanics
@@ -360,18 +364,33 @@
                             playerDie();
                             return;
                         }
-                        if(obstacle.type === 'platform' && player.velocity > 0) {
-                            player.y = obstacle.y - player.height;
-                            player.velocity = 0;
+                        if(obstacle.type === 'platform' && player.velocity >= 0) {
+                            if (player.y + player.height + player.velocity >= obstacle.y &&
+                                player.y + player.height <= obstacle.y + player.velocity) {
+                                player.y = obstacle.y - player.height;
+                                player.velocity = 0;
+                                player.jumping = false;
+                                if (game.jumpPressed) {
+                                    player.velocity = game.jumpForce;
+                                    player.jumping = true;
+                                    createParticles(player.x + player.width/2, player.y + player.height, '#00FFFF');
+                                }
+                            }
                         }
                     }
                 }
             }
 
-            // Ground collision check
-            if (player.y > canvas.height - 130) {
+            // Ground collision
+            if (player.y >= canvas.height - 130) {
                 player.y = canvas.height - 130;
                 player.velocity = 0;
+                player.jumping = false;
+                if (game.jumpPressed) {
+                    player.velocity = game.jumpForce;
+                    player.jumping = true;
+                    createParticles(player.x + player.width/2, player.y + player.height, '#00FFFF');
+                }
             }
         }
 
@@ -390,17 +409,14 @@
         function drawGame() {
             ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-            // Draw ground
             ctx.fillStyle = '#00FFFF';
             ctx.fillRect(0, canvas.height - 100, canvas.width, 2);
 
-            // Draw coins with glowing effect
             game.coins.forEach(coin => {
                 if (!coin.collected && coin.x > player.worldX - 800 && coin.x < player.worldX + 800) {
                     const screenX = coin.x - game.cameraX;
-                    coin.rotation += 0.1;  // Rotate coin
+                    coin.rotation += 0.1;  
 
-                    // Draw glow
                     const gradient = ctx.createRadialGradient(
                         screenX + 10, coin.y + 10, 0,
                         screenX + 10, coin.y + 10, 15
@@ -412,7 +428,6 @@
                     ctx.arc(screenX + 10, coin.y + 10, 15, 0, Math.PI * 2);
                     ctx.fill();
 
-                    // Draw coin
                     ctx.save();
                     ctx.translate(screenX + 10, coin.y + 10);
                     ctx.rotate(coin.rotation);
@@ -478,13 +493,11 @@
 
             if (player.isAlive) {
                 player.worldX += game.speed;
+
                 player.velocity += game.gravity;
                 player.y += player.velocity;
 
-                if (player.y > canvas.height - 130) {
-                    player.y = canvas.height - 130;
-                    player.velocity = 0;
-                }
+                checkCollisions();
 
                 game.cameraX = player.worldX - 200;
                 
@@ -494,7 +507,6 @@
 
                 game.obstacles = game.obstacles.filter(obs => obs.x > player.worldX - 800);
                 
-                checkCollisions();
                 updateScore();
             }
 
@@ -507,25 +519,10 @@
         // Event listeners
         document.addEventListener('keydown', (e) => {
             if (e.code === 'Space' || e.code === 'ArrowUp') {
-                // Can jump if on ground or platform (y position check)
-                let onGround = player.y >= canvas.height - 131;
-                let onPlatform = false;
-
-                // Check if on platform
-                for(const obstacle of game.obstacles) {
-                    if(obstacle.type === 'platform' &&
-                       obstacle.x > player.worldX - 800 && 
-                       obstacle.x < player.worldX + 800 &&
-                       player.y + player.height === obstacle.y &&
-                       player.worldX + player.width > obstacle.x &&
-                       player.worldX < obstacle.x + obstacle.width) {
-                        onPlatform = true;
-                        break;
-                    }
-                }
-
-                if (game.running && player.isAlive && (onGround || onPlatform)) {
+                game.jumpPressed = true;
+                if (game.running && player.isAlive && !player.jumping) {
                     player.velocity = game.jumpForce;
+                    player.jumping = true;
                     createParticles(player.x + player.width/2, player.y + player.height, '#00FFFF');
                 }
             } else if (e.code === 'Escape') {
@@ -539,30 +536,26 @@
             }
         });
 
+        document.addEventListener('keyup', (e) => {
+            if (e.code === 'Space' || e.code === 'ArrowUp') {
+                game.jumpPressed = false;
+            }
+        });
+
         // Touch controls for mobile
         canvas.addEventListener('touchstart', (e) => {
             e.preventDefault();
-            // Can jump if on ground or platform (y position check)
-            let onGround = player.y >= canvas.height - 131;
-            let onPlatform = false;
-
-            // Check if on platform
-            for(const obstacle of game.obstacles) {
-                if(obstacle.type === 'platform' &&
-                   obstacle.x > player.worldX - 800 && 
-                   obstacle.x < player.worldX + 800 &&
-                   player.y + player.height === obstacle.y &&
-                   player.worldX + player.width > obstacle.x &&
-                   player.worldX < obstacle.x + obstacle.width) {
-                    onPlatform = true;
-                    break;
-                }
-            }
-
-            if (game.running && player.isAlive && (onGround || onPlatform)) {
+            game.jumpPressed = true;
+            if (game.running && player.isAlive && !player.jumping) {
                 player.velocity = game.jumpForce;
+                player.jumping = true;
                 createParticles(player.x + player.width/2, player.y + player.height, '#00FFFF');
             }
+        });
+
+        canvas.addEventListener('touchend', (e) => {
+            e.preventDefault();
+            game.jumpPressed = false;
         });
     </script>
 </body>
