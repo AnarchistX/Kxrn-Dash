@@ -508,7 +508,23 @@
         document.addEventListener('keydown', (e) => {
             if (e.code === 'Space' || e.code === 'ArrowUp') {
                 // Can jump if on ground or platform (y position check)
-                if (game.running && player.isAlive && player.y >= canvas.height - 131) {
+                let onGround = player.y >= canvas.height - 131;
+                let onPlatform = false;
+
+                // Check if on platform
+                for(const obstacle of game.obstacles) {
+                    if(obstacle.type === 'platform' &&
+                       obstacle.x > player.worldX - 800 && 
+                       obstacle.x < player.worldX + 800 &&
+                       player.y + player.height === obstacle.y &&
+                       player.worldX + player.width > obstacle.x &&
+                       player.worldX < obstacle.x + obstacle.width) {
+                        onPlatform = true;
+                        break;
+                    }
+                }
+
+                if (game.running && player.isAlive && (onGround || onPlatform)) {
                     player.velocity = game.jumpForce;
                     createParticles(player.x + player.width/2, player.y + player.height, '#00FFFF');
                 }
@@ -526,7 +542,24 @@
         // Touch controls for mobile
         canvas.addEventListener('touchstart', (e) => {
             e.preventDefault();
-            if (game.running && player.isAlive && player.y >= canvas.height - 131) {
+            // Can jump if on ground or platform (y position check)
+            let onGround = player.y >= canvas.height - 131;
+            let onPlatform = false;
+
+            // Check if on platform
+            for(const obstacle of game.obstacles) {
+                if(obstacle.type === 'platform' &&
+                   obstacle.x > player.worldX - 800 && 
+                   obstacle.x < player.worldX + 800 &&
+                   player.y + player.height === obstacle.y &&
+                   player.worldX + player.width > obstacle.x &&
+                   player.worldX < obstacle.x + obstacle.width) {
+                    onPlatform = true;
+                    break;
+                }
+            }
+
+            if (game.running && player.isAlive && (onGround || onPlatform)) {
                 player.velocity = game.jumpForce;
                 createParticles(player.x + player.width/2, player.y + player.height, '#00FFFF');
             }
