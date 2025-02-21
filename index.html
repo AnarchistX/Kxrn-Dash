@@ -524,21 +524,35 @@
             requestAnimationFrame(gameLoop);
         }
 
+        // Check if player is on ground or platform
+        function canJump() {
+            // Check ground
+            if (player.y >= canvas.height - player.height - 1) return true;
+            
+            // Check platforms
+            for (let obstacle of game.obstacles) {
+                if (obstacle.type === 'platform' && 
+                    player.x + player.width > obstacle.x && 
+                    player.x < obstacle.x + obstacle.width &&
+                    Math.abs(player.y + player.height - obstacle.y) <= 2) {
+                    return true;
+                }
+            }
+            return false;
+        }
+
         // Event listeners
         document.addEventListener('keydown', (e) => {
-            if (e.code === 'Space' || e.code === 'ArrowUp') {
-                // Can jump if on ground or platform (y position check)
-                if (game.running && player.isAlive && player.y >= canvas.height - 131) {
+            if ((e.code === 'Space' || e.code === 'ArrowUp') && game.running && player.isAlive) {
+                if (canJump()) {
                     player.velocity = game.jumpForce;
                     createParticles(player.x + player.width/2, player.y + player.height, '#00FFFF');
                 }
-            } else if (e.code === 'Escape') {
-                if (game.running && player.isAlive) {
-                    if (game.isPaused) {
-                        resumeGame();
-                    } else {
-                        pauseGame();
-                    }
+            } else if (e.code === 'Escape' && game.running) {
+                if (game.isPaused) {
+                    resumeGame();
+                } else {
+                    pauseGame();
                 }
             }
         });
@@ -550,7 +564,7 @@
         mobileControls.addEventListener('touchstart', (e) => {
             e.preventDefault();
             touchStartY = e.touches[0].clientY;
-            if (game.running && player.isAlive && player.y >= canvas.height - 131) {
+            if (game.running && player.isAlive && canJump()) {
                 player.velocity = game.jumpForce;
                 createParticles(player.x + player.width/2, player.y + player.height, '#00FFFF');
             }
