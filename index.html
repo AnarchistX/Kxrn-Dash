@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>KXRN Dash</title>
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <canvas id="gameCanvas"></canvas>
+    
+    <div id="score">Score: 0</div>
+    <div id="attempts">Attempts: 0</div>
+
+    <div id="menu">
+        <h1>KXRN DASH</h1>
+        <button onclick="startGame()">START GAME</button>
+    </div>
+
+    <div id="gameOver" style="display: none;">
+        <h1>GAME OVER</h1>
+        <div id="finalScore">Score: 0</div>
+        <button onclick="startGame()">TRY AGAIN</button>
+        <button onclick="showMenu()">MAIN MENU</button>
+    </div>
+
+    <div id="pauseMenu" style="display: none;">
+        <h1>PAUSED</h1>
+        <button onclick="resumeGame()">RESUME</button>
+        <button onclick="showMenu()">MAIN MENU</button>
+    </div>
+
+    <script src="js/game.js"></script>
+</body>
+</html>
