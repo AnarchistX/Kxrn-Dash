@@ -19,11 +19,17 @@
             position: relative;
             width: 100%;
             height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
         }
         img {
-            width: 100%;
-            height: 100vh;
-            object-fit: cover;
+            min-width: 100%;
+            min-height: 100vh;
+            width: auto;
+            height: auto;
+            object-fit: contain;
             filter: brightness(0.8);
         }
         .overlay {
@@ -33,6 +39,7 @@
             transform: translate(-50%, -50%);
             text-align: center;
             z-index: 10;
+            width: 90%;
         }
         h1 {
             color: white;
@@ -50,6 +57,11 @@
             h1 {
                 font-size: 2em;
                 padding: 15px 30px;
+            }
+            img {
+                width: 100%;
+                height: 100%;
+                object-fit: cover;
             }
         }
     </style>
