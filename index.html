@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>KXRN-DASH</title>
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@700&display=swap" rel="stylesheet">
     <style>
         body, html {
             margin: 0;
@@ -12,15 +13,53 @@
             height: 100%;
             overflow: hidden;
             background: black;
+            font-family: 'Montserrat', sans-serif;
+        }
+        .container {
+            position: relative;
+            width: 100%;
+            height: 100vh;
         }
         img {
             width: 100%;
             height: 100vh;
             object-fit: cover;
+            filter: brightness(0.8);
+        }
+        .overlay {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            text-align: center;
+            z-index: 10;
+        }
+        h1 {
+            color: white;
+            font-size: 4em;
+            margin: 0;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            background: rgba(0, 0, 0, 0.7);
+            padding: 20px 40px;
+            border-radius: 10px;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.5);
+            backdrop-filter: blur(5px);
+        }
+        @media (max-width: 768px) {
+            h1 {
+                font-size: 2em;
+                padding: 15px 30px;
+            }
         }
     </style>
 </head>
 <body>
-    <img src="https://media1.tenor.com/m/SxN4qp4uKwQAAAAC/heaven-on-earth-massage-parlor.gif" alt="Coming Soon">
+    <div class="container">
+        <img src="https://media1.tenor.com/m/SxN4qp4uKwQAAAAC/heaven-on-earth-massage-parlor.gif" alt="Coming Soon">
+        <div class="overlay">
+            <h1>In Maintenance</h1>
+        </div>
+    </div>
 </body>
 </html>
