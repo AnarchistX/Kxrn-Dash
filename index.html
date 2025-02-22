@@ -698,6 +698,12 @@
             if (isMobile()) {
                 const isPortrait = window.innerHeight > window.innerWidth;
                 document.getElementById('orientationPrompt').style.display = isPortrait ? 'block' : 'none';
+                if (isPortrait && game.running) {
+                    pauseGame();
+                } else if (!isPortrait && game.running) {
+                    canvas.style.display = 'block';
+                    resumeGame();
+                }
             } else {
                 document.getElementById('orientationPrompt').style.display = 'none';
             }
