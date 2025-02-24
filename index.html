@@ -154,18 +154,33 @@
         function initSound() {
             if (soundEnabled) return;
             soundEnabled = true;
-            coinSound.src = 'assets/sounds/sfx/coin collect.mp3';
-            deathSound.src = 'assets/sounds/sfx/death sci-fi.mp3';
-            playRandomTrack();
+            try {
+                coinSound.src = 'assets/sounds/sfx/coin collect.mp3';
+                deathSound.src = 'assets/sounds/sfx/death sci-fi.mp3';
+                coinSound.load();
+                deathSound.load();
+                playRandomTrack();
+            } catch (error) {
+                console.error('Error initializing sound:', error);
+            }
         }
 
         function playSound(sound) {
             if (!sound || !soundEnabled) return;
             try {
-                sound.currentTime = 0;
-                let playPromise = sound.play();
-                if (playPromise !== undefined) {
-                    playPromise.catch(error => console.error(`Error playing sound:`, error));
+                if (sound.readyState >= 2) {  // Check if sound is loaded
+                    sound.currentTime = 0;
+                    let playPromise = sound.play();
+                    if (playPromise !== undefined) {
+                        playPromise.catch(error => {
+                            console.error(`Error playing sound:`, error);
+                            // Try to play again after user interaction
+                            document.addEventListener('click', () => playSound(sound), { once: true });
+                        });
+                    }
+                } else {
+                    console.log('Sound not loaded yet');
+                    sound.addEventListener('canplaythrough', () => playSound(sound), { once: true });
                 }
             } catch (error) {
                 console.error(`Error playing sound:`, error);
