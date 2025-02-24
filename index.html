@@ -243,9 +243,8 @@
         };
 
         function generateObstacles(startX) {
-            // Slower difficulty increase, capped at 2.5
-            game.difficulty = 1 + Math.min(1.5, game.score / 2000);
-            game.speed = Math.min(game.maxSpeed, game.baseSpeed + (game.difficulty - 1) * 2);
+            game.difficulty = 1 + Math.floor(game.score / 1000) * 0.2; 
+            game.speed = game.baseSpeed * game.difficulty;
 
             if (Math.random() < 0.7) {  
                 const coinY = canvas.height - 230 + Math.random() * 100;
@@ -260,12 +259,12 @@
             }
 
             const types = ['spike', 'platform', 'gap'];
-            const spikeChance = 0.3 + (game.difficulty - 1) * 0.05;
+            const spikeChance = 0.3 + (game.difficulty - 1) * 0.1; 
             const type = Math.random() < spikeChance ? 'spike' : types[Math.floor(Math.random() * types.length)];
             
             switch(type) {
                 case 'spike':
-                    const spikeCount = Math.min(2, Math.floor(Math.random() * game.difficulty + 1));
+                    const spikeCount = Math.min(3, Math.floor(Math.random() * game.difficulty + 1));
                     for(let i = 0; i < spikeCount; i++) {
                         game.obstacles.push({
                             x: startX + (i * 50),
@@ -277,7 +276,7 @@
                     }
                     break;
                 case 'platform':
-                    const minHeight = canvas.height - 230 - ((game.difficulty - 1) * 30);
+                    const minHeight = canvas.height - 230 - ((game.difficulty - 1) * 50);
                     const platformHeight = minHeight + Math.random() * 100;
                     game.obstacles.push({
                         x: startX,
@@ -286,7 +285,7 @@
                         height: 20,
                         type: 'platform'
                     });
-                    if (Math.random() < 0.2 * game.difficulty) {
+                    if (Math.random() < 0.3 * game.difficulty) {
                         const spikeX = startX + Math.random() * 160;
                         game.obstacles.push({
                             x: spikeX,
@@ -298,7 +297,7 @@
                     }
                     break;
                 case 'gap':
-                    const gapWidth = 100 + (game.difficulty - 1) * 10;
+                    const gapWidth = 100 + (game.difficulty - 1) * 20;
                     break;
             }
         }
@@ -341,9 +340,17 @@
                 game.score = 0;
                 game.coinCount = 0;
                 game.attempts++;
-                document.getElementById('attempts').textContent = `Attempts: ${game.attempts}`;
-                generateObstacles(400);
+                game.obstacles = [];
+                game.coins = [];
+                game.particles = [];
+                
+                for(let i = 0; i < 10; i++) {
+                    generateObstacles(800 + i * 400);
+                }
             }
+
+            updateScore();
+            document.getElementById('attempts').textContent = `Attempts: ${game.attempts}`;
         }
 
         function togglePracticeMode() {
