@@ -139,85 +139,75 @@
         let currentTrackIndex = 0;
 
         const musicPlaylist = [
-            'assets/sounds/background1.mp3',
-            'assets/sounds/background2.mp3',
-            'assets/sounds/background3.mp3'
+            'assets/sounds/Sci-Fi Runner/Astral Siren\'s Call.m4a',
+            'assets/sounds/Sci-Fi Runner/Bioluminescence Protocol.m4a',
+            'assets/sounds/Sci-Fi Runner/Digital Awakening.m4a',
+            'assets/sounds/Sci-Fi Runner/Digital Lattice.m4a',
+            'assets/sounds/Sci-Fi Runner/Digital Pursuit.m4a',
+            'assets/sounds/Sci-Fi Runner/Digital Silk Stream.m4a',
+            'assets/sounds/Sci-Fi Runner/Digital Velocity.m4a',
+            'assets/sounds/Sci-Fi Runner/Quantum Rush.m4a',
+            'assets/sounds/Sci-Fi Runner/Quantum Seduction.m4a',
+            'assets/sounds/Sci-Fi Runner/System Genesis.m4a'
         ];
 
         function initSound() {
             if (soundEnabled) return;
-            try {
-                console.log('Initializing sound system...');
-                soundEnabled = true;
-                
-                // Set up sound effects
-                coinSound.src = 'assets/sounds/SFX/coin collect.mp3';
-                deathSound.src = 'assets/sounds/SFX/death sci-fi.mp3';
-                
-                // Initialize background music
-                currentTrackIndex = Math.floor(Math.random() * musicPlaylist.length);
-                console.log('Selected track:', musicPlaylist[currentTrackIndex]);
-                backgroundMusic.src = musicPlaylist[currentTrackIndex];
-                backgroundMusic.volume = 0.6;
-                backgroundMusic.loop = false; // Set to false to allow track switching
-                
-                // Add event listeners for music
-                backgroundMusic.addEventListener('ended', () => {
-                    console.log('Track ended, playing next...');
-                    currentTrackIndex = (currentTrackIndex + 1) % musicPlaylist.length;
-                    playRandomTrack();
-                });
-
-                backgroundMusic.addEventListener('error', (e) => {
-                    console.error('Audio error:', e);
-                });
-                
-                // Start playing music
-                console.log('Starting music playback...');
-                playRandomTrack();
-            } catch (error) {
-                console.error('Sound initialization error:', error);
-            }
+            soundEnabled = true;
+            
+            // Set up sound effects
+            coinSound.src = 'assets/sounds/SFX/coin collect.mp3';
+            deathSound.src = 'assets/sounds/SFX/death sci-fi.mp3';
+            
+            // Start with first track
+            playRandomTrack();
         }
 
         function playSound(sound) {
-            if (!soundEnabled || !sound) return;
+            if (!sound || !soundEnabled) return;
+            
             try {
                 sound.currentTime = 0;
-                sound.play().catch(error => {
-                    console.error('Error playing sound:', error);
-                });
+                let playPromise = sound.play();
+                
+                if (playPromise !== undefined) {
+                    playPromise.catch(error => {
+                        console.error(`Error playing sound:`, error);
+                    });
+                }
             } catch (error) {
-                console.error('Error playing sound:', error);
+                console.error(`Error playing sound:`, error);
             }
         }
 
         function playRandomTrack() {
-            if (!soundEnabled || !backgroundMusic) {
-                console.log('Cannot play music - sound not enabled or backgroundMusic not found');
-                return;
-            }
+            if (!soundEnabled) return;
             
             try {
-                console.log('Attempting to play track:', musicPlaylist[currentTrackIndex]);
+                currentTrackIndex = Math.floor(Math.random() * musicPlaylist.length);
                 backgroundMusic.src = musicPlaylist[currentTrackIndex];
-                
+                backgroundMusic.volume = 0.6; // Set volume to 60%
                 let playPromise = backgroundMusic.play();
+                
                 if (playPromise !== undefined) {
                     playPromise.catch(error => {
-                        console.error('Error playing music:', error);
-                        console.log('Trying next track...');
+                        console.error(`Error playing background music:`, error);
+                        // Try next track on error after a short delay
                         setTimeout(() => {
                             currentTrackIndex = (currentTrackIndex + 1) % musicPlaylist.length;
-                            backgroundMusic.src = musicPlaylist[currentTrackIndex];
                             playRandomTrack();
                         }, 1000);
                     });
                 }
             } catch (error) {
-                console.error('Music play error:', error);
+                console.error(`Error playing background music:`, error);
             }
         }
+
+        backgroundMusic.addEventListener('ended', () => {
+            currentTrackIndex = (currentTrackIndex + 1) % musicPlaylist.length;
+            playRandomTrack();
+        });
 
         const player = {
             x: 200,
