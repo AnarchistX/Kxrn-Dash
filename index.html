@@ -128,12 +128,78 @@
         const canvas = document.getElementById('gameCanvas');
         const ctx = canvas.getContext('2d');
         
-        const coinSound = new Audio();
-        const deathSound = new Audio();
+        // Create and preload sound effects
+        const coinSound = new Audio('assets/sounds/sfx/coin collect.mp3');
+        const deathSound = new Audio('assets/sounds/sfx/death sci-fi.mp3');
         const backgroundMusic = new Audio();
+        
+        coinSound.preload = 'auto';
+        deathSound.preload = 'auto';
         
         let soundEnabled = false;
         let currentTrackIndex = 0;
+
+        // Create clones for overlapping sounds
+        const createSoundPool = (originalSound, poolSize = 3) => {
+            const pool = [originalSound];
+            for (let i = 1; i < poolSize; i++) {
+                const clone = originalSound.cloneNode();
+                clone.volume = originalSound.volume;
+                pool.push(clone);
+            }
+            return pool;
+        };
+
+        const coinSoundPool = createSoundPool(coinSound);
+        let currentCoinSound = 0;
+
+        function playSoundFromPool(pool) {
+            if (!soundEnabled) return;
+            try {
+                const sound = pool[currentCoinSound];
+                sound.currentTime = 0;
+                sound.play().catch(error => console.error('Error playing sound:', error));
+                currentCoinSound = (currentCoinSound + 1) % pool.length;
+            } catch (error) {
+                console.error('Error playing sound from pool:', error);
+            }
+        }
+
+        function playSound(sound) {
+            if (!sound || !soundEnabled) return;
+            try {
+                if (sound === coinSound) {
+                    playSoundFromPool(coinSoundPool);
+                } else {
+                    sound.currentTime = 0;
+                    sound.play().catch(error => console.error('Error playing sound:', error));
+                }
+            } catch (error) {
+                console.error(`Error playing sound:`, error);
+            }
+        }
+
+        function initSound() {
+            if (soundEnabled) return;
+            soundEnabled = true;
+            
+            // Set volumes
+            coinSound.volume = 0.4;
+            deathSound.volume = 0.3;
+            backgroundMusic.volume = 0.6;
+            backgroundMusic.preload = 'auto';
+            
+            // Initialize coin sound pool
+            coinSoundPool.forEach(sound => {
+                sound.volume = coinSound.volume;
+            });
+
+            // Set up background music
+            backgroundMusic.addEventListener('ended', playNextTrack);
+            
+            // Start with random track
+            playRandomTrack();
+        }
 
         const musicPlaylist = [
             'assets/sounds/music/Astral Siren\'s Call.m4a',
@@ -148,63 +214,6 @@
             'assets/sounds/music/System Genesis.m4a'
         ];
 
-        function initSound() {
-            if (soundEnabled) return;
-            soundEnabled = true;
-            try {
-                // Preload sound effects
-                coinSound.src = 'assets/sounds/sfx/coin collect.mp3';
-                deathSound.src = 'assets/sounds/sfx/death sci-fi.mp3';
-                coinSound.preload = 'auto';
-                deathSound.preload = 'auto';
-                
-                // Set up background music
-                backgroundMusic.preload = 'auto';
-                backgroundMusic.volume = 0.6;
-                backgroundMusic.addEventListener('ended', () => {
-                    playNextTrack();
-                });
-                
-                // Load and play first track
-                playRandomTrack();
-                
-                // Start loading sound effects
-                Promise.all([
-                    new Promise(resolve => coinSound.addEventListener('canplaythrough', resolve, { once: true })),
-                    new Promise(resolve => deathSound.addEventListener('canplaythrough', resolve, { once: true }))
-                ]).then(() => {
-                    console.log('Sound effects loaded');
-                }).catch(error => {
-                    console.error('Error loading sound effects:', error);
-                });
-            } catch (error) {
-                console.error('Error initializing sound:', error);
-            }
-        }
-
-        function playSound(sound) {
-            if (!sound || !soundEnabled) return;
-            try {
-                sound.currentTime = 0;
-                let playPromise = sound.play();
-                if (playPromise !== undefined) {
-                    playPromise.catch(error => {
-                        console.error(`Error playing sound:`, error);
-                        if (error.name === 'NotAllowedError') {
-                            // Add a one-time click handler to retry playing after user interaction
-                            const playAfterClick = () => {
-                                sound.play().catch(e => console.error('Retry failed:', e));
-                                document.removeEventListener('click', playAfterClick);
-                            };
-                            document.addEventListener('click', playAfterClick);
-                        }
-                    });
-                }
-            } catch (error) {
-                console.error(`Error playing sound:`, error);
-            }
-        }
-
         function playRandomTrack() {
             if (!soundEnabled) return;
             try {
@@ -215,30 +224,16 @@
                 
                 currentTrackIndex = newIndex;
                 backgroundMusic.src = musicPlaylist[currentTrackIndex];
-                let playPromise = backgroundMusic.play();
-                if (playPromise !== undefined) {
-                    playPromise.catch(error => {
-                        console.error(`Error playing background music:`, error);
-                        if (error.name === 'NotAllowedError') {
-                            const playAfterClick = () => {
-                                backgroundMusic.play().catch(e => console.error('Retry failed:', e));
-                                document.removeEventListener('click', playAfterClick);
-                            };
-                            document.addEventListener('click', playAfterClick);
-                        }
-                    });
-                }
+                backgroundMusic.play().catch(error => console.error('Error playing background music:', error));
             } catch (error) {
-                console.error(`Error playing background music:`, error);
+                console.error('Error playing background music:', error);
             }
         }
 
         function playNextTrack() {
             currentTrackIndex = (currentTrackIndex + 1) % musicPlaylist.length;
             backgroundMusic.src = musicPlaylist[currentTrackIndex];
-            backgroundMusic.play().catch(error => {
-                console.error(`Error playing next track:`, error);
-            });
+            backgroundMusic.play().catch(error => console.error('Error playing next track:', error));
         }
 
         const player = {
@@ -356,15 +351,19 @@
             game.running = true;
             game.isPracticeMode = false;
             
-            // Initialize sound if not already done
+            // Initialize sound system
             if (!soundEnabled) {
                 initSound();
-                // Add a one-time click handler to start sound after user interaction
-                const startSoundAfterClick = () => {
-                    playRandomTrack();
-                    document.removeEventListener('click', startSoundAfterClick);
+                // Add a one-time click handler for browser autoplay policy
+                const enableSound = () => {
+                    coinSound.play().then(() => {
+                        coinSound.pause();
+                        coinSound.currentTime = 0;
+                        playRandomTrack();
+                    }).catch(error => console.error('Error enabling sound:', error));
+                    document.removeEventListener('click', enableSound);
                 };
-                document.addEventListener('click', startSoundAfterClick);
+                document.addEventListener('click', enableSound);
             }
             
             resetGame();
