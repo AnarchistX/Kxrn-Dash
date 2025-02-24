@@ -123,18 +123,15 @@
         <h1>PLEASE ROTATE</h1>
         <p>For the best experience, please rotate your device to landscape mode.</p>
     </div>
-    <audio id="coinSound" preload="auto"></audio>
-    <audio id="deathSound" preload="auto"></audio>
-    <audio id="backgroundMusic" preload="auto"></audio>
 
     <script>
         const canvas = document.getElementById('gameCanvas');
         const ctx = canvas.getContext('2d');
         
-        const coinSound = document.getElementById('coinSound');
-        const deathSound = document.getElementById('deathSound');
-        const backgroundMusic = document.getElementById('backgroundMusic');
-
+        const coinSound = new Audio();
+        const deathSound = new Audio();
+        const backgroundMusic = new Audio();
+        
         let soundEnabled = false;
         let currentTrackIndex = 0;
 
@@ -155,11 +152,31 @@
             if (soundEnabled) return;
             soundEnabled = true;
             try {
+                // Preload sound effects
                 coinSound.src = 'assets/sounds/sfx/coin collect.mp3';
                 deathSound.src = 'assets/sounds/sfx/death sci-fi.mp3';
-                coinSound.load();
-                deathSound.load();
+                coinSound.preload = 'auto';
+                deathSound.preload = 'auto';
+                
+                // Set up background music
+                backgroundMusic.preload = 'auto';
+                backgroundMusic.volume = 0.6;
+                backgroundMusic.addEventListener('ended', () => {
+                    playNextTrack();
+                });
+                
+                // Load and play first track
                 playRandomTrack();
+                
+                // Start loading sound effects
+                Promise.all([
+                    new Promise(resolve => coinSound.addEventListener('canplaythrough', resolve, { once: true })),
+                    new Promise(resolve => deathSound.addEventListener('canplaythrough', resolve, { once: true }))
+                ]).then(() => {
+                    console.log('Sound effects loaded');
+                }).catch(error => {
+                    console.error('Error loading sound effects:', error);
+                });
             } catch (error) {
                 console.error('Error initializing sound:', error);
             }
@@ -168,19 +185,20 @@
         function playSound(sound) {
             if (!sound || !soundEnabled) return;
             try {
-                if (sound.readyState >= 2) {  // Check if sound is loaded
-                    sound.currentTime = 0;
-                    let playPromise = sound.play();
-                    if (playPromise !== undefined) {
-                        playPromise.catch(error => {
-                            console.error(`Error playing sound:`, error);
-                            // Try to play again after user interaction
-                            document.addEventListener('click', () => playSound(sound), { once: true });
-                        });
-                    }
-                } else {
-                    console.log('Sound not loaded yet');
-                    sound.addEventListener('canplaythrough', () => playSound(sound), { once: true });
+                sound.currentTime = 0;
+                let playPromise = sound.play();
+                if (playPromise !== undefined) {
+                    playPromise.catch(error => {
+                        console.error(`Error playing sound:`, error);
+                        if (error.name === 'NotAllowedError') {
+                            // Add a one-time click handler to retry playing after user interaction
+                            const playAfterClick = () => {
+                                sound.play().catch(e => console.error('Retry failed:', e));
+                                document.removeEventListener('click', playAfterClick);
+                            };
+                            document.addEventListener('click', playAfterClick);
+                        }
+                    });
                 }
             } catch (error) {
                 console.error(`Error playing sound:`, error);
@@ -190,17 +208,24 @@
         function playRandomTrack() {
             if (!soundEnabled) return;
             try {
-                currentTrackIndex = Math.floor(Math.random() * musicPlaylist.length);
+                let newIndex;
+                do {
+                    newIndex = Math.floor(Math.random() * musicPlaylist.length);
+                } while (newIndex === currentTrackIndex && musicPlaylist.length > 1);
+                
+                currentTrackIndex = newIndex;
                 backgroundMusic.src = musicPlaylist[currentTrackIndex];
-                backgroundMusic.volume = 0.6;
                 let playPromise = backgroundMusic.play();
                 if (playPromise !== undefined) {
                     playPromise.catch(error => {
                         console.error(`Error playing background music:`, error);
-                        setTimeout(() => {
-                            currentTrackIndex = (currentTrackIndex + 1) % musicPlaylist.length;
-                            playRandomTrack();
-                        }, 1000);
+                        if (error.name === 'NotAllowedError') {
+                            const playAfterClick = () => {
+                                backgroundMusic.play().catch(e => console.error('Retry failed:', e));
+                                document.removeEventListener('click', playAfterClick);
+                            };
+                            document.addEventListener('click', playAfterClick);
+                        }
                     });
                 }
             } catch (error) {
@@ -208,10 +233,13 @@
             }
         }
 
-        backgroundMusic.addEventListener('ended', () => {
+        function playNextTrack() {
             currentTrackIndex = (currentTrackIndex + 1) % musicPlaylist.length;
-            playRandomTrack();
-        });
+            backgroundMusic.src = musicPlaylist[currentTrackIndex];
+            backgroundMusic.play().catch(error => {
+                console.error(`Error playing next track:`, error);
+            });
+        }
 
         const player = {
             x: 200,
@@ -325,10 +353,21 @@
             if (isMobile() && window.innerHeight > window.innerWidth) return;
             hideAllMenus();
             canvas.style.display = 'block';
-            resetGame();
             game.running = true;
-            initSound();
-            playSound(backgroundMusic);
+            game.isPracticeMode = false;
+            
+            // Initialize sound if not already done
+            if (!soundEnabled) {
+                initSound();
+                // Add a one-time click handler to start sound after user interaction
+                const startSoundAfterClick = () => {
+                    playRandomTrack();
+                    document.removeEventListener('click', startSoundAfterClick);
+                };
+                document.addEventListener('click', startSoundAfterClick);
+            }
+            
+            resetGame();
             requestAnimationFrame(gameLoop);
         }
 
@@ -404,6 +443,7 @@
             document.getElementById('gameOver').style.display = 'block';
             document.getElementById('finalScore').textContent = `Score: ${game.score}`;
             backgroundMusic.pause();
+            // Don't reset currentTrackIndex here to keep track variety
         }
 
         function restartGame() {
@@ -413,7 +453,7 @@
             game.isPaused = false;
             game.lastCheckpoint = null;
             resetGame();
-            playSound(backgroundMusic);
+            playRandomTrack(); // Use playRandomTrack instead of playSound for background music
             requestAnimationFrame(gameLoop);
         }
 
@@ -453,7 +493,9 @@
                         game.coinCount++;  
                         game.score += 100;  
                         createParticles(coin.x + coin.width/2, coin.y + coin.height/2, '#FFD700', 15);
-                        playSound(coinSound);
+                        if (soundEnabled) {
+                            playSound(coinSound);
+                        }
                     }
                 }
             }
