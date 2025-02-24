@@ -139,64 +139,85 @@
         let currentTrackIndex = 0;
 
         const musicPlaylist = [
-            'C:/Users/dhaga/Music/Game Music/Sci-Fi Runner/Astral Siren\'s Call.m4a',
-            'C:/Users/dhaga/Music/Game Music/Sci-Fi Runner/Bioluminescence Protocol.m4a',
-            'C:/Users/dhaga/Music/Game Music/Sci-Fi Runner/Digital Awakening.m4a',
-            'C:/Users/dhaga/Music/Game Music/Sci-Fi Runner/Digital Lattice.m4a',
-            'C:/Users/dhaga/Music/Game Music/Sci-Fi Runner/Digital Pursuit.m4a',
-            'C:/Users/dhaga/Music/Game Music/Sci-Fi Runner/Digital Silk Stream.m4a',
-            'C:/Users/dhaga/Music/Game Music/Sci-Fi Runner/Digital Velocity.m4a',
-            'C:/Users/dhaga/Music/Game Music/Sci-Fi Runner/Quantum Rush.m4a',
-            'C:/Users/dhaga/Music/Game Music/Sci-Fi Runner/Quantum Seduction.m4a',
-            'C:/Users/dhaga/Music/Game Music/Sci-Fi Runner/System Genesis.m4a'
+            'assets/sounds/background1.mp3',
+            'assets/sounds/background2.mp3',
+            'assets/sounds/background3.mp3'
         ];
 
         function initSound() {
             if (soundEnabled) return;
-            soundEnabled = true;
-            coinSound.src = 'C:/Users/dhaga/Music/Game Music/SFX/coin collect.mp3';
-            deathSound.src = 'C:/Users/dhaga/Music/Game Music/SFX/death sci-fi.mp3';
-            playRandomTrack();
+            try {
+                console.log('Initializing sound system...');
+                soundEnabled = true;
+                
+                // Set up sound effects
+                coinSound.src = 'assets/sounds/SFX/coin collect.mp3';
+                deathSound.src = 'assets/sounds/SFX/death sci-fi.mp3';
+                
+                // Initialize background music
+                currentTrackIndex = Math.floor(Math.random() * musicPlaylist.length);
+                console.log('Selected track:', musicPlaylist[currentTrackIndex]);
+                backgroundMusic.src = musicPlaylist[currentTrackIndex];
+                backgroundMusic.volume = 0.6;
+                backgroundMusic.loop = false; // Set to false to allow track switching
+                
+                // Add event listeners for music
+                backgroundMusic.addEventListener('ended', () => {
+                    console.log('Track ended, playing next...');
+                    currentTrackIndex = (currentTrackIndex + 1) % musicPlaylist.length;
+                    playRandomTrack();
+                });
+
+                backgroundMusic.addEventListener('error', (e) => {
+                    console.error('Audio error:', e);
+                });
+                
+                // Start playing music
+                console.log('Starting music playback...');
+                playRandomTrack();
+            } catch (error) {
+                console.error('Sound initialization error:', error);
+            }
         }
 
         function playSound(sound) {
-            if (!sound || !soundEnabled) return;
+            if (!soundEnabled || !sound) return;
             try {
                 sound.currentTime = 0;
-                let playPromise = sound.play();
-                if (playPromise !== undefined) {
-                    playPromise.catch(error => console.error(`Error playing sound:`, error));
-                }
+                sound.play().catch(error => {
+                    console.error('Error playing sound:', error);
+                });
             } catch (error) {
-                console.error(`Error playing sound:`, error);
+                console.error('Error playing sound:', error);
             }
         }
 
         function playRandomTrack() {
-            if (!soundEnabled) return;
+            if (!soundEnabled || !backgroundMusic) {
+                console.log('Cannot play music - sound not enabled or backgroundMusic not found');
+                return;
+            }
+            
             try {
-                currentTrackIndex = Math.floor(Math.random() * musicPlaylist.length);
+                console.log('Attempting to play track:', musicPlaylist[currentTrackIndex]);
                 backgroundMusic.src = musicPlaylist[currentTrackIndex];
-                backgroundMusic.volume = 0.6;
+                
                 let playPromise = backgroundMusic.play();
                 if (playPromise !== undefined) {
                     playPromise.catch(error => {
-                        console.error(`Error playing background music:`, error);
+                        console.error('Error playing music:', error);
+                        console.log('Trying next track...');
                         setTimeout(() => {
                             currentTrackIndex = (currentTrackIndex + 1) % musicPlaylist.length;
+                            backgroundMusic.src = musicPlaylist[currentTrackIndex];
                             playRandomTrack();
                         }, 1000);
                     });
                 }
             } catch (error) {
-                console.error(`Error playing background music:`, error);
+                console.error('Music play error:', error);
             }
         }
-
-        backgroundMusic.addEventListener('ended', () => {
-            currentTrackIndex = (currentTrackIndex + 1) % musicPlaylist.length;
-            playRandomTrack();
-        });
 
         const player = {
             x: 200,
@@ -307,14 +328,31 @@
         }
 
         function startGame() {
-            if (isMobile() && window.innerHeight > window.innerWidth) return;
-            hideAllMenus();
-            canvas.style.display = 'block';
-            resetGame();
-            game.running = true;
-            initSound();
-            playSound(backgroundMusic);
-            requestAnimationFrame(gameLoop);
+            if (!game.running) {
+                hideAllMenus();
+                canvas.style.display = 'block';
+                game.running = true;
+                player.isAlive = true;
+                player.velocity = 0;
+                game.obstacles = [];
+                game.coins = [];
+                game.particles = [];
+                game.jumpPads = [];
+                game.score = 0;
+                game.coinCount = 0;
+                game.attempts++;
+                document.getElementById('attempts').textContent = `Attempts: ${game.attempts}`;
+                generateObstacles(400);
+                
+                // Initialize sound after user interaction
+                if (!soundEnabled) {
+                    initSound();
+                } else {
+                    playRandomTrack();
+                }
+                
+                requestAnimationFrame(gameLoop);
+            }
         }
 
         function resetGame() {
@@ -655,6 +693,16 @@
         window.addEventListener('resize', checkOrientation);
         window.addEventListener('orientationchange', checkOrientation);
         checkOrientation();
+
+        document.addEventListener('DOMContentLoaded', () => {
+            document.querySelectorAll('button').forEach(button => {
+                button.addEventListener('click', () => {
+                    if (button.textContent === 'PLAY') {
+                        startGame();
+                    }
+                });
+            });
+        });
     </script>
 </body>
 </html>
