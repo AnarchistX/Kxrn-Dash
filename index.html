@@ -318,31 +318,14 @@
         }
 
         function startGame() {
-            if (!game.running) {
-                hideAllMenus();
-                canvas.style.display = 'block';
-                game.running = true;
-                player.isAlive = true;
-                player.velocity = 0;
-                game.obstacles = [];
-                game.coins = [];
-                game.particles = [];
-                game.jumpPads = [];
-                game.score = 0;
-                game.coinCount = 0;
-                game.attempts++;
-                document.getElementById('attempts').textContent = `Attempts: ${game.attempts}`;
-                generateObstacles(400);
-                
-                // Initialize sound after user interaction
-                if (!soundEnabled) {
-                    initSound();
-                } else {
-                    playRandomTrack();
-                }
-                
-                requestAnimationFrame(gameLoop);
-            }
+            if (isMobile() && window.innerHeight > window.innerWidth) return;
+            hideAllMenus();
+            canvas.style.display = 'block';
+            resetGame();
+            game.running = true;
+            initSound();
+            playSound(backgroundMusic); // Start background music
+            requestAnimationFrame(gameLoop);
         }
 
         function resetGame() {
@@ -358,17 +341,9 @@
                 game.score = 0;
                 game.coinCount = 0;
                 game.attempts++;
-                game.obstacles = [];
-                game.coins = [];
-                game.particles = [];
-                
-                for(let i = 0; i < 10; i++) {
-                    generateObstacles(800 + i * 400);
-                }
+                document.getElementById('attempts').textContent = `Attempts: ${game.attempts}`;
+                generateObstacles(400);
             }
-
-            updateScore();
-            document.getElementById('attempts').textContent = `Attempts: ${game.attempts}`;
         }
 
         function togglePracticeMode() {
