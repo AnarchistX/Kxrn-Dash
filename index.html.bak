@@ -96,6 +96,18 @@
         }
     </style>
     <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@700&display=swap" rel="stylesheet">
+    <audio id="coinSound" src="assets/audio/sfx/coin collect.mp3" preload="auto"></audio>
+    <audio id="deathSound" src="assets/audio/sfx/death sci-fi.mp3" preload="auto"></audio>
+    <audio id="bgMusic1" src="assets/audio/music/Astral Siren's Call.m4a" preload="auto"></audio>
+    <audio id="bgMusic2" src="assets/audio/music/Bioluminescence Protocol.m4a" preload="auto"></audio>
+    <audio id="bgMusic3" src="assets/audio/music/Digital Awakening.m4a" preload="auto"></audio>
+    <audio id="bgMusic4" src="assets/audio/music/Digital Lattice.m4a" preload="auto"></audio>
+    <audio id="bgMusic5" src="assets/audio/music/Digital Pursuit.m4a" preload="auto"></audio>
+    <audio id="bgMusic6" src="assets/audio/music/Digital Silk Stream.m4a" preload="auto"></audio>
+    <audio id="bgMusic7" src="assets/audio/music/Digital Velocity.m4a" preload="auto"></audio>
+    <audio id="bgMusic8" src="assets/audio/music/Quantum Rush.m4a" preload="auto"></audio>
+    <audio id="bgMusic9" src="assets/audio/music/Quantum Seduction.m4a" preload="auto"></audio>
+    <audio id="bgMusic10" src="assets/audio/music/System Genesis.m4a" preload="auto"></audio>
 </head>
 <body>
     <div class="grid"></div>
@@ -123,81 +135,74 @@
         <h1>PLEASE ROTATE</h1>
         <p>For the best experience, please rotate your device to landscape mode.</p>
     </div>
-    <audio id="coinSound" preload="auto"></audio>
-    <audio id="deathSound" preload="auto"></audio>
-    <audio id="backgroundMusic" preload="auto"></audio>
 
     <script>
+        // Initialize canvas
         const canvas = document.getElementById('gameCanvas');
         const ctx = canvas.getContext('2d');
         
-        const coinSound = document.getElementById('coinSound');
-        const deathSound = document.getElementById('deathSound');
-        const backgroundMusic = document.getElementById('backgroundMusic');
+        // Set canvas size based on device
+        function resizeCanvas() {
+            if (isMobile()) {
+                // On mobile, use screen dimensions for proper scaling
+                canvas.width = screen.width;
+                canvas.height = screen.height;
+            } else {
+                canvas.width = window.innerWidth;
+                canvas.height = window.innerHeight;
+            }
+            // Scale game elements based on screen size
+            const scale = Math.min(canvas.width / 1920, canvas.height / 1080);
+            game.scale = scale;
+        }
+        resizeCanvas();
+        window.addEventListener('resize', resizeCanvas);
 
-        let soundEnabled = false;
-        let currentTrackIndex = 0;
-
-        const musicPlaylist = [
-            'C:/Users/dhaga/Music/Game Music/Sci-Fi Runner/Astral Siren\'s Call.m4a',
-            'C:/Users/dhaga/Music/Game Music/Sci-Fi Runner/Bioluminescence Protocol.m4a',
-            'C:/Users/dhaga/Music/Game Music/Sci-Fi Runner/Digital Awakening.m4a',
-            'C:/Users/dhaga/Music/Game Music/Sci-Fi Runner/Digital Lattice.m4a',
-            'C:/Users/dhaga/Music/Game Music/Sci-Fi Runner/Digital Pursuit.m4a',
-            'C:/Users/dhaga/Music/Game Music/Sci-Fi Runner/Digital Silk Stream.m4a',
-            'C:/Users/dhaga/Music/Game Music/Sci-Fi Runner/Digital Velocity.m4a',
-            'C:/Users/dhaga/Music/Game Music/Sci-Fi Runner/Quantum Rush.m4a',
-            'C:/Users/dhaga/Music/Game Music/Sci-Fi Runner/Quantum Seduction.m4a',
-            'C:/Users/dhaga/Music/Game Music/Sci-Fi Runner/System Genesis.m4a'
-        ];
-
-        function initSound() {
-            if (soundEnabled) return;
-            soundEnabled = true;
-            coinSound.src = 'C:/Users/dhaga/Music/Game Music/SFX/coin collect.mp3';
-            deathSound.src = 'C:/Users/dhaga/Music/Game Music/SFX/death sci-fi.mp3';
-            playRandomTrack();
+        // Detect mobile device
+        function isMobile() {
+            return /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
         }
 
-        function playSound(sound) {
-            if (!sound || !soundEnabled) return;
-            try {
-                sound.currentTime = 0;
-                let playPromise = sound.play();
-                if (playPromise !== undefined) {
-                    playPromise.catch(error => console.error(`Error playing sound:`, error));
-                }
-            } catch (error) {
-                console.error(`Error playing sound:`, error);
+        // Request fullscreen
+        function requestFullscreen() {
+            const elem = document.documentElement;
+            if (elem.requestFullscreen) {
+                elem.requestFullscreen();
+            } else if (elem.webkitRequestFullscreen) {
+                elem.webkitRequestFullscreen();
+            } else if (elem.msRequestFullscreen) {
+                elem.msRequestFullscreen();
             }
         }
 
-        function playRandomTrack() {
-            if (!soundEnabled) return;
-            try {
-                currentTrackIndex = Math.floor(Math.random() * musicPlaylist.length);
-                backgroundMusic.src = musicPlaylist[currentTrackIndex];
-                backgroundMusic.volume = 0.6;
-                let playPromise = backgroundMusic.play();
-                if (playPromise !== undefined) {
-                    playPromise.catch(error => {
-                        console.error(`Error playing background music:`, error);
-                        setTimeout(() => {
-                            currentTrackIndex = (currentTrackIndex + 1) % musicPlaylist.length;
-                            playRandomTrack();
-                        }, 1000);
-                    });
+        // Check orientation and show prompt on mobile
+        function checkOrientation() {
+            if (isMobile()) {
+                const isPortrait = window.innerHeight > window.innerWidth;
+                const orientationPrompt = document.getElementById('orientationPrompt');
+                orientationPrompt.style.display = isPortrait ? 'block' : 'none';
+                
+                // If switched to landscape, request fullscreen
+                if (!isPortrait) {
+                    requestFullscreen();
+                    // Small delay to let fullscreen engage before starting
+                    setTimeout(() => {
+                        resizeCanvas();
+                        if (game.running) {
+                            hideAllMenus();
+                            canvas.style.display = 'block';
+                        }
+                    }, 100);
                 }
-            } catch (error) {
-                console.error(`Error playing background music:`, error);
+            } else {
+                document.getElementById('orientationPrompt').style.display = 'none';
             }
         }
+        window.addEventListener('resize', checkOrientation);
+        window.addEventListener('orientationchange', checkOrientation);
+        checkOrientation();
 
-        backgroundMusic.addEventListener('ended', () => {
-            currentTrackIndex = (currentTrackIndex + 1) % musicPlaylist.length;
-            playRandomTrack();
-        });
-
+        // Game elements
         const player = {
             x: 200,
             y: canvas.height - 130,
@@ -212,29 +217,29 @@
         const game = {
             running: false,
             isPaused: false,
-            speed: 10,
+            speed: 10,  
             baseSpeed: 10,
-            maxSpeed: 14,  // Capped speed for manageability
-            jumpForce: -18, // Original snappy jump
-            gravity: 1.0,  // Original gravity for quick drops
+            jumpForce: -18,
+            gravity: 1.0,
             score: 0,
             coinCount: 0,
             attempts: 0,
             obstacles: [],
             coins: [],
             particles: [],
-            difficulty: 1,
+            difficulty: 1,  
             checkpoints: [],
             lastCheckpoint: null,
             isPracticeMode: false,
             cameraX: 0,
-            jumpPressed: false
+            jumpPressed: false,
+            scale: 1
         };
 
+        // Initialize game objects
         function generateObstacles(startX) {
-            // Slower difficulty increase, capped at 2.5
-            game.difficulty = 1 + Math.min(1.5, game.score / 2000);
-            game.speed = Math.min(game.maxSpeed, game.baseSpeed + (game.difficulty - 1) * 2);
+            game.difficulty = 1 + Math.min(2, Math.log(1 + game.score / 2000)); // Tapered difficulty
+            game.speed = game.baseSpeed * game.difficulty;
 
             if (Math.random() < 0.7) {  
                 const coinY = canvas.height - 230 + Math.random() * 100;
@@ -249,12 +254,12 @@
             }
 
             const types = ['spike', 'platform', 'gap'];
-            const spikeChance = 0.3 + (game.difficulty - 1) * 0.05;
+            const spikeChance = Math.min(0.5, 0.3 + (game.difficulty - 1) * 0.05); // Capped at 0.5
             const type = Math.random() < spikeChance ? 'spike' : types[Math.floor(Math.random() * types.length)];
             
             switch(type) {
                 case 'spike':
-                    const spikeCount = Math.min(2, Math.floor(Math.random() * game.difficulty + 1));
+                    const spikeCount = Math.min(3, Math.floor(Math.random() * game.difficulty + 1));
                     for(let i = 0; i < spikeCount; i++) {
                         game.obstacles.push({
                             x: startX + (i * 50),
@@ -266,7 +271,7 @@
                     }
                     break;
                 case 'platform':
-                    const minHeight = canvas.height - 230 - ((game.difficulty - 1) * 30);
+                    const minHeight = canvas.height - 230 - Math.min(100, (game.difficulty - 1) * 25); // Capped lowering
                     const platformHeight = minHeight + Math.random() * 100;
                     game.obstacles.push({
                         x: startX,
@@ -275,7 +280,7 @@
                         height: 20,
                         type: 'platform'
                     });
-                    if (Math.random() < 0.2 * game.difficulty) {
+                    if (Math.random() < Math.min(0.6, 0.3 * game.difficulty)) { // Capped at 0.6
                         const spikeX = startX + Math.random() * 160;
                         game.obstacles.push({
                             x: spikeX,
@@ -287,7 +292,7 @@
                     }
                     break;
                 case 'gap':
-                    const gapWidth = 100 + (game.difficulty - 1) * 10;
+                    const gapWidth = 100 + Math.min(50, (game.difficulty - 1) * 10); // Wider gaps
                     break;
             }
         }
@@ -306,14 +311,15 @@
             }
         }
 
+        // Game state management
         function startGame() {
+            console.log("Game starting, initializing music...");
             if (isMobile() && window.innerHeight > window.innerWidth) return;
             hideAllMenus();
             canvas.style.display = 'block';
             resetGame();
             game.running = true;
-            initSound();
-            playSound(backgroundMusic);
+            playRandomTrack(); // Start background music
             requestAnimationFrame(gameLoop);
         }
 
@@ -357,12 +363,13 @@
         }
 
         function showMenu() {
-            hideAllMenus();
-            document.getElementById('menu').style.display = 'block';
             game.running = false;
             game.lastCheckpoint = null;
             canvas.style.display = 'none';
-            backgroundMusic.pause();
+            if (currentTrack) {
+                currentTrack.pause();
+                currentTrack.currentTime = 0;
+            }
             checkOrientation();
         }
 
@@ -370,44 +377,53 @@
             if (!game.running || !player.isAlive) return;
             game.isPaused = true;
             document.getElementById('pauseMenu').style.display = 'block';
-            backgroundMusic.pause();
+            if (currentTrack) currentTrack.pause(); // Pause music
         }
 
         function resumeGame() {
             game.isPaused = false;
             hideAllMenus();
-            playSound(backgroundMusic);
+            if (currentTrack) currentTrack.play().catch(e => console.log("Error resuming music:", e)); // Resume music
             requestAnimationFrame(gameLoop);
         }
 
         function playerDie() {
             if (!player.isAlive) return;  
+            
             player.isAlive = false;
             game.running = false;  
             createParticles(player.x + player.width/2, player.y + player.height/2, '#00FFFF', 20);
-            playSound(deathSound);
+            
             document.getElementById('gameOver').style.display = 'block';
             document.getElementById('finalScore').textContent = `Score: ${game.score}`;
-            backgroundMusic.pause();
+            playSound(deathSound);
+            if (currentTrack) {
+                currentTrack.pause();
+                currentTrack.currentTime = 0;
+            }
         }
 
         function restartGame() {
             hideAllMenus();
             canvas.style.display = 'block';
+            
             game.running = true;
             game.isPaused = false;
             game.lastCheckpoint = null;
+            
             resetGame();
-            playSound(backgroundMusic);
+            playRandomTrack();
             requestAnimationFrame(gameLoop);
         }
 
+        // Game mechanics
         function updateParticles() {
             for(let i = game.particles.length - 1; i >= 0; i--) {
                 const particle = game.particles[i];
                 particle.x += particle.vx;
                 particle.y += particle.vy;
                 particle.life -= 0.02;
+                
                 if(particle.life <= 0) {
                     game.particles.splice(i, 1);
                 }
@@ -422,6 +438,7 @@
                 height: player.height
             };
 
+            // Check coin collisions
             for(let i = game.coins.length - 1; i >= 0; i--) {
                 const coin = game.coins[i];
                 if (!coin.collected && 
@@ -434,15 +451,16 @@
                         height: coin.height
                     };
                     if (checkCollision(playerHitbox, coinHitbox)) {
-                        game.coins.splice(i, 1);  
+                        coin.collected = true;
                         game.coinCount++;  
                         game.score += 100;  
-                        createParticles(coin.x + coin.width/2, coin.y + coin.height/2, '#FFD700', 15);
                         playSound(coinSound);
+                        createParticles(coin.x + coin.width/2, coin.y + coin.height/2, '#FFD700', 15);
                     }
                 }
             }
 
+            // Check obstacle collisions
             for(const obstacle of game.obstacles) {
                 if(obstacle.x > player.worldX - 800 && obstacle.x < player.worldX + 800) {
                     if(checkCollision(playerHitbox, obstacle)) {
@@ -467,6 +485,7 @@
                 }
             }
 
+            // Ground collision
             if (player.y >= canvas.height - 130) {
                 player.y = canvas.height - 130;
                 player.velocity = 0;
@@ -490,22 +509,29 @@
             document.getElementById('score').textContent = `Score: ${game.score} (Coins: ${game.coinCount})`;
         }
 
+        // Drawing functions
         function drawGame() {
             ctx.clearRect(0, 0, canvas.width, canvas.height);
+
             ctx.fillStyle = '#00FFFF';
             ctx.fillRect(0, canvas.height - 100, canvas.width, 2);
 
             game.coins.forEach(coin => {
                 if (!coin.collected && coin.x > player.worldX - 800 && coin.x < player.worldX + 800) {
                     const screenX = coin.x - game.cameraX;
-                    coin.rotation += 0.1;
-                    const gradient = ctx.createRadialGradient(screenX + 10, coin.y + 10, 0, screenX + 10, coin.y + 10, 15);
+                    coin.rotation += 0.1;  
+
+                    const gradient = ctx.createRadialGradient(
+                        screenX + 10, coin.y + 10, 0,
+                        screenX + 10, coin.y + 10, 15
+                    );
                     gradient.addColorStop(0, 'rgba(255, 215, 0, 0.3)');
                     gradient.addColorStop(1, 'rgba(255, 215, 0, 0)');
                     ctx.fillStyle = gradient;
                     ctx.beginPath();
                     ctx.arc(screenX + 10, coin.y + 10, 15, 0, Math.PI * 2);
                     ctx.fill();
+
                     ctx.save();
                     ctx.translate(screenX + 10, coin.y + 10);
                     ctx.rotate(coin.rotation);
@@ -523,6 +549,7 @@
             game.obstacles.forEach(obstacle => {
                 if(obstacle.x > player.worldX - 800 && obstacle.x < player.worldX + 800) {
                     const screenX = obstacle.x - game.cameraX;
+                    
                     ctx.fillStyle = obstacle.type === 'spike' ? '#FF0000' : '#00FFFF';
                     if(obstacle.type === 'spike') {
                         ctx.beginPath();
@@ -563,20 +590,18 @@
             });
         }
 
+        // Game loop
         function gameLoop() {
-            if (!game.running || game.isPaused) return;
+            if (!game.running) return;  
+            if (game.isPaused) return;
 
             if (player.isAlive) {
                 player.worldX += game.speed;
+
                 player.velocity += game.gravity;
                 player.y += player.velocity;
 
                 checkCollisions();
-
-                if (game.isPracticeMode && game.score > 0 && game.score % 500 === 0 && !game.checkpoints.some(cp => cp.x === player.worldX)) {
-                    game.checkpoints.push({ x: player.worldX });
-                    game.lastCheckpoint = game.checkpoints[game.checkpoints.length - 1];
-                }
 
                 game.cameraX = player.worldX - 200;
                 
@@ -585,14 +610,60 @@
                 }
 
                 game.obstacles = game.obstacles.filter(obs => obs.x > player.worldX - 800);
+                
                 updateScore();
             }
 
             updateParticles();
             drawGame();
+
             requestAnimationFrame(gameLoop);
         }
 
+        // Sound System
+        const musicTracks = [
+            document.getElementById('bgMusic1'),
+            document.getElementById('bgMusic2'),
+            document.getElementById('bgMusic3'),
+            document.getElementById('bgMusic4'),
+            document.getElementById('bgMusic5'),
+            document.getElementById('bgMusic6'),
+            document.getElementById('bgMusic7'),
+            document.getElementById('bgMusic8'),
+            document.getElementById('bgMusic9'),
+            document.getElementById('bgMusic10')
+        ];
+        
+        const deathSound = document.getElementById('deathSound');
+        const coinSound = document.getElementById('coinSound');
+        let currentTrack = null;
+
+        function playSound(sound) {
+            if (sound) {
+                sound.currentTime = 0;
+                sound.play().catch(e => console.log("Error playing sound:", e));
+            }
+        }
+
+        function playRandomTrack() {
+            if (currentTrack) {
+                currentTrack.pause();
+                currentTrack.currentTime = 0;
+            }
+            
+            const randomIndex = Math.floor(Math.random() * musicTracks.length);
+            currentTrack = musicTracks[randomIndex];
+            
+            if (currentTrack) {
+                currentTrack.volume = 0.5; // Set music volume to 50%
+                currentTrack.play().catch(e => console.log("Error playing music:", e));
+                
+                // When track ends, play another random track
+                currentTrack.onended = playRandomTrack;
+            }
+        }
+
+        // Event listeners
         document.addEventListener('keydown', (e) => {
             if (e.code === 'Space' || e.code === 'ArrowUp') {
                 game.jumpPressed = true;
@@ -603,16 +674,22 @@
                 }
             } else if (e.code === 'Escape') {
                 if (game.running && player.isAlive) {
-                    if (game.isPaused) resumeGame();
-                    else pauseGame();
+                    if (game.isPaused) {
+                        resumeGame();
+                    } else {
+                        pauseGame();
+                    }
                 }
             }
         });
 
         document.addEventListener('keyup', (e) => {
-            if (e.code === 'Space' || e.code === 'ArrowUp') game.jumpPressed = false;
+            if (e.code === 'Space' || e.code === 'ArrowUp') {
+                game.jumpPressed = false;
+            }
         });
 
+        // Touch controls for mobile
         canvas.addEventListener('touchstart', (e) => {
             e.preventDefault();
             game.jumpPressed = true;
@@ -627,34 +704,6 @@
             e.preventDefault();
             game.jumpPressed = false;
         });
-
-        function resizeCanvas() {
-            if (isMobile()) {
-                canvas.width = window.innerWidth;
-                canvas.height = window.innerHeight;
-            } else {
-                canvas.width = window.innerWidth;
-                canvas.height = window.innerHeight;
-            }
-        }
-        resizeCanvas();
-        window.addEventListener('resize', resizeCanvas);
-
-        function isMobile() {
-            return /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
-        }
-
-        function checkOrientation() {
-            if (isMobile()) {
-                const isPortrait = window.innerHeight > window.innerWidth;
-                document.getElementById('orientationPrompt').style.display = isPortrait ? 'block' : 'none';
-            } else {
-                document.getElementById('orientationPrompt').style.display = 'none';
-            }
-        }
-        window.addEventListener('resize', checkOrientation);
-        window.addEventListener('orientationchange', checkOrientation);
-        checkOrientation();
     </script>
 </body>
 </html>
