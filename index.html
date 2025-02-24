@@ -139,23 +139,23 @@
         let currentTrackIndex = 0;
 
         const musicPlaylist = [
-            'C:/Users/dhaga/Music/Game Music/Sci-Fi Runner/Astral Siren\'s Call.m4a',
-            'C:/Users/dhaga/Music/Game Music/Sci-Fi Runner/Bioluminescence Protocol.m4a',
-            'C:/Users/dhaga/Music/Game Music/Sci-Fi Runner/Digital Awakening.m4a',
-            'C:/Users/dhaga/Music/Game Music/Sci-Fi Runner/Digital Lattice.m4a',
-            'C:/Users/dhaga/Music/Game Music/Sci-Fi Runner/Digital Pursuit.m4a',
-            'C:/Users/dhaga/Music/Game Music/Sci-Fi Runner/Digital Silk Stream.m4a',
-            'C:/Users/dhaga/Music/Game Music/Sci-Fi Runner/Digital Velocity.m4a',
-            'C:/Users/dhaga/Music/Game Music/Sci-Fi Runner/Quantum Rush.m4a',
-            'C:/Users/dhaga/Music/Game Music/Sci-Fi Runner/Quantum Seduction.m4a',
-            'C:/Users/dhaga/Music/Game Music/Sci-Fi Runner/System Genesis.m4a'
+            'assets/sounds/music/Astral Siren\'s Call.m4a',
+            'assets/sounds/music/Bioluminescence Protocol.m4a',
+            'assets/sounds/music/Digital Awakening.m4a',
+            'assets/sounds/music/Digital Lattice.m4a',
+            'assets/sounds/music/Digital Pursuit.m4a',
+            'assets/sounds/music/Digital Silk Stream.m4a',
+            'assets/sounds/music/Digital Velocity.m4a',
+            'assets/sounds/music/Quantum Rush.m4a',
+            'assets/sounds/music/Quantum Seduction.m4a',
+            'assets/sounds/music/System Genesis.m4a'
         ];
 
         function initSound() {
             if (soundEnabled) return;
             soundEnabled = true;
-            coinSound.src = 'C:/Users/dhaga/Music/Game Music/SFX/coin collect.mp3';
-            deathSound.src = 'C:/Users/dhaga/Music/Game Music/SFX/death sci-fi.mp3';
+            coinSound.src = 'assets/sounds/sfx/coin collect.mp3';
+            deathSound.src = 'assets/sounds/sfx/death sci-fi.mp3';
             playRandomTrack();
         }
 
