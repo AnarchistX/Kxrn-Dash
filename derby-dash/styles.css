@@ -15,3 +15,28 @@ body {
 button {
   font: inherit;
 }
+
+/* Home button to return to site hub */
+#homeBtn {
+  position: fixed;
+  top: 12px;
+  left: 12px;
+  width: 28px;
+  height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #58a6ff;
+  border: 1px solid #58a6ff;
+  background: rgba(13, 17, 23, 0.6);
+  text-decoration: none;
+  font-size: 16px;
+  line-height: 1;
+  border-radius: 4px;
+  box-shadow: 0 0 10px #58a6ff66;
+  z-index: 2000;
+}
+#homeBtn:hover {
+  background: rgba(13, 17, 23, 0.85);
+  box-shadow: 0 0 14px #58a6ffaa;
+}

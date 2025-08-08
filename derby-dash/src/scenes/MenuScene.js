@@ -16,12 +16,6 @@ export default class MenuScene extends Phaser.Scene {
     this.bet = 0;
 
     this.add.image(0, 0, 'bgGradient').setOrigin(0);
-    // Back to site home
-    const backBtn = this.makeButton(16, 16, 90, 32, '← Back', () => {
-      window.location.href = 'https://kxrnage.com/';
-    });
-    backBtn.setDepth(2000);
-    if (typeof backBtn.setScrollFactor === 'function') backBtn.setScrollFactor(0);
 
     // If no bankroll, go to Game Over
     const bankroll0 = this.registry.get('bankroll') ?? 0;

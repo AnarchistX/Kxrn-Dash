@@ -54,13 +54,6 @@ export default class RaceScene extends Phaser.Scene {
 
     this.drawTrack();
 
-    // Back to site home (fixed to screen)
-    const backBtn = this.makeButton(16, 16, 90, 32, '← Back', () => {
-      window.location.href = 'https://kxrnage.com/';
-    });
-    backBtn.setDepth(3000);
-    if (typeof backBtn.setScrollFactor === 'function') backBtn.setScrollFactor(0);
-
     // Create horses: prefer numbered image assets; fallback to procedural vector build
     this.horses = this.field.map((h, i) => {
       const y = this.track.top + i * this.track.laneH + this.track.laneH * 0.5;
