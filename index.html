@@ -216,6 +216,20 @@
             } catch (e) {
                 console.warn('Web Audio init failed:', e);
             }
+
+            // Pre-select and preload a random music track to reduce start delay
+            try {
+                let preIndex = Math.floor(Math.random() * musicPlaylist.length);
+                currentTrackIndex = preIndex;
+                backgroundMusic.src = musicPlaylist[currentTrackIndex];
+                // Attempt to preload/buffer before user gesture
+                backgroundMusic.load();
+                backgroundMusic.addEventListener('canplaythrough', () => {
+                    game.musicReady = true;
+                }, { once: true });
+            } catch (e) {
+                console.warn('Music preload failed:', e);
+            }
         }
 
         const musicPlaylist = [
@@ -352,7 +366,8 @@
             freqData: null,
             beat: 0,
             beatSmoothed: 0,
-            mediaSourceReady: false
+            mediaSourceReady: false,
+            musicReady: false
         };
 
         function generateObstacles(startX) {
@@ -492,7 +507,17 @@
                         if (game.audioCtx && game.audioCtx.state === 'suspended') {
                             game.audioCtx.resume().catch(() => {});
                         }
-                        playRandomTrack();
+                        const startMusic = () => {
+                            backgroundMusic.play().catch(err => console.error('Music play error:', err));
+                        };
+                        if (game.musicReady) {
+                            startMusic();
+                        } else {
+                            // If not yet ready, wait for buffer-ready then start
+                            backgroundMusic.addEventListener('canplaythrough', startMusic, { once: true });
+                            // As a fallback, attempt to play anyway (browser may delay until buffered)
+                            backgroundMusic.play().catch(() => {});
+                        }
                     }).catch(error => console.error('Error enabling sound:', error));
                     document.removeEventListener('click', enableSound);
                 };
