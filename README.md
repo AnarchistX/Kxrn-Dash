@@ -1,4 +1,4 @@
-# KXRN Dash
+# Quantum Rush
 
 A fast-paced, sci-fi themed endless runner game. Jump over obstacles, collect coins, and try to achieve the highest score!
 
