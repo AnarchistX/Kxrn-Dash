@@ -129,8 +129,8 @@
         const ctx = canvas.getContext('2d');
         
         // Create and preload sound effects
-        const coinSound = new Audio('assets/sounds/sfx/coin collect.mp3');
-        const deathSound = new Audio('assets/sounds/sfx/death sci-fi.mp3');
+        const coinSound = new Audio('assets/sounds/SFX/coin collect.mp3');
+        const deathSound = new Audio('assets/sounds/SFX/death sci-fi.mp3');
         const backgroundMusic = new Audio();
         
         coinSound.preload = 'auto';
@@ -196,9 +196,26 @@
 
             // Set up background music
             backgroundMusic.addEventListener('ended', playNextTrack);
-            
-            // Start with random track
-            playRandomTrack();
+            // Do not autoplay here; we start playback after a user gesture in startGame()
+
+            // Set up Web Audio analyser for beat-reactive visuals
+            try {
+                const Ctx = window.AudioContext || window.webkitAudioContext;
+                if (Ctx && !game.audioCtx) {
+                    game.audioCtx = new Ctx();
+                }
+                if (game.audioCtx && !game.mediaSourceReady) {
+                    game.analyser = game.audioCtx.createAnalyser();
+                    game.analyser.fftSize = 256;
+                    game.freqData = new Uint8Array(game.analyser.frequencyBinCount);
+                    const src = game.audioCtx.createMediaElementSource(backgroundMusic);
+                    src.connect(game.analyser);
+                    game.analyser.connect(game.audioCtx.destination);
+                    game.mediaSourceReady = true;
+                }
+            } catch (e) {
+                console.warn('Web Audio init failed:', e);
+            }
         }
 
         const musicPlaylist = [
@@ -236,15 +253,71 @@
             backgroundMusic.play().catch(error => console.error('Error playing next track:', error));
         }
 
+        // === Sci-Fi: Parallax Starfield and Speed Lines ===
+        const starfield = {
+            layers: [
+                { stars: [], speed: 0.15, color: 'rgba(0,255,255,0.15)', size: 1.5 },
+                { stars: [], speed: 0.35, color: 'rgba(0,255,255,0.25)', size: 2.0 },
+                { stars: [], speed: 0.7,  color: 'rgba(255,255,255,0.35)', size: 1.0 }
+            ]
+        };
+
+        function initStarfield() {
+            starfield.layers.forEach(layer => {
+                const count = Math.floor((canvas.width * canvas.height) / 25000);
+                layer.stars = Array.from({ length: count }, () => ({
+                    x: Math.random() * canvas.width,
+                    y: Math.random() * canvas.height
+                }));
+            });
+        }
+
+        function drawStarfield() {
+            starfield.layers.forEach(layer => {
+                ctx.save();
+                ctx.fillStyle = layer.color;
+                const beatBoost = 0.9 + (game.beat || 0) * 0.4;
+                ctx.globalAlpha = beatBoost;
+                layer.stars.forEach(star => {
+                    let screenX = star.x - game.cameraX * layer.speed;
+                    // wrap
+                    screenX = ((screenX % canvas.width) + canvas.width) % canvas.width;
+                    ctx.beginPath();
+                    ctx.arc(screenX, star.y, layer.size, 0, Math.PI * 2);
+                    ctx.fill();
+                });
+                ctx.restore();
+            });
+        }
+
+        function drawSpeedLines() {
+            if (!game.showSpeedLines) return;
+            const lines = 20;
+            for (let i = 0; i < lines; i++) {
+                const x = Math.random() * canvas.width;
+                const length = 20 + Math.random() * 60;
+                ctx.strokeStyle = 'rgba(0, 255, 255, 0.15)';
+                ctx.lineWidth = 2;
+                ctx.beginPath();
+                ctx.moveTo(x, 0);
+                ctx.lineTo(x + 50, length);
+                ctx.stroke();
+            }
+        }
+
+        function groundY() { return canvas.height - 100; }
+        function groundTop() { return groundY() - 2; }
+
         const player = {
             x: 200,
-            y: canvas.height - 130,
+            y: groundTop() - 40,
             width: 40,
             height: 40,
             velocity: 0,
             worldX: 200,
             isAlive: true,
-            jumping: false
+            jumping: false,
+            trail: []
         };
 
         const game = {
@@ -261,12 +334,25 @@
             obstacles: [],
             coins: [],
             particles: [],
+            effects: [], // transient VFX like shockwaves
             difficulty: 1,
             checkpoints: [],
             lastCheckpoint: null,
             isPracticeMode: false,
             cameraX: 0,
-            jumpPressed: false
+            jumpPressed: false,
+            // Sci-Fi: speed boost state
+            extraSpeed: 0,
+            speedBoostTimer: 0,
+            speedBoostAmount: 6,
+            showSpeedLines: false,
+            // Audio/beat-reactive
+            audioCtx: null,
+            analyser: null,
+            freqData: null,
+            beat: 0,
+            beatSmoothed: 0,
+            mediaSourceReady: false
         };
 
         function generateObstacles(startX) {
@@ -286,9 +372,18 @@
                 });
             }
 
-            const types = ['spike', 'platform', 'gap'];
             const spikeChance = 0.3 + (game.difficulty - 1) * 0.05;
-            const type = Math.random() < spikeChance ? 'spike' : types[Math.floor(Math.random() * types.length)];
+            const portalChance = 0.12 + (game.difficulty - 1) * 0.03;
+            let type;
+            const r = Math.random();
+            if (r < spikeChance) {
+                type = 'spike';
+            } else if (r < spikeChance + portalChance) {
+                type = 'portal';
+            } else {
+                const pool = ['platform', 'gap'];
+                type = pool[Math.floor(Math.random() * pool.length)];
+            }
             
             switch(type) {
                 case 'spike':
@@ -296,7 +391,7 @@
                     for(let i = 0; i < spikeCount; i++) {
                         game.obstacles.push({
                             x: startX + (i * 50),
-                            y: canvas.height - 130,
+                            y: groundTop() - 40,
                             width: 40,
                             height: 40,
                             type: 'spike'
@@ -324,9 +419,43 @@
                         });
                     }
                     break;
+                case 'portal':
+                    game.obstacles.push({
+                        x: startX + 100 + Math.random() * 150,
+                        y: canvas.height - 180,
+                        width: 26,
+                        height: 80,
+                        type: 'portal',
+                        activated: false,
+                        phase: 0
+                    });
+                    break;
                 case 'gap':
                     const gapWidth = 100 + (game.difficulty - 1) * 10;
                     break;
+            }
+
+            // Chance to add a jump pad near ground
+            if (Math.random() < 0.22) {
+                game.obstacles.push({
+                    x: startX + 60 + Math.random() * 200,
+                    y: groundTop() - 12,
+                    width: 80,
+                    height: 12,
+                    type: 'pad'
+                });
+            }
+            // Chance to add an air orb above ground
+            if (Math.random() < 0.28) {
+                game.obstacles.push({
+                    x: startX + 120 + Math.random() * 220,
+                    y: groundTop() - (140 + Math.random() * 120),
+                    width: 24,
+                    height: 24,
+                    type: 'orb',
+                    used: false,
+                    phase: 0
+                });
             }
         }
 
@@ -359,6 +488,10 @@
                     coinSound.play().then(() => {
                         coinSound.pause();
                         coinSound.currentTime = 0;
+                        // Resume Web Audio context on user gesture if suspended
+                        if (game.audioCtx && game.audioCtx.state === 'suspended') {
+                            game.audioCtx.resume().catch(() => {});
+                        }
                         playRandomTrack();
                     }).catch(error => console.error('Error enabling sound:', error));
                     document.removeEventListener('click', enableSound);
@@ -367,17 +500,22 @@
             }
             
             resetGame();
+            initStarfield();
+            // Music starts after user gesture via the click handler
             requestAnimationFrame(gameLoop);
         }
 
         function resetGame() {
             player.worldX = game.lastCheckpoint ? game.lastCheckpoint.x : 200;
             player.x = 200;
-            player.y = canvas.height - 130;
+            player.y = groundTop() - player.height;
             player.velocity = 0;
             player.isAlive = true;
             player.jumping = false;
             game.jumpPressed = false;
+            game.speedBoostTimer = 0;
+            player.trail = [];
+            game.effects = [];
 
             if (!game.lastCheckpoint) {
                 game.score = 0;
@@ -437,6 +575,7 @@
             if (!player.isAlive) return;  
             player.isAlive = false;
             game.running = false;  
+            game.speedBoostTimer = 0;
             createParticles(player.x + player.width/2, player.y + player.height/2, '#00FFFF', 20);
             playSound(deathSound);
             document.getElementById('gameOver').style.display = 'block';
@@ -464,6 +603,15 @@
                 particle.life -= 0.02;
                 if(particle.life <= 0) {
                     game.particles.splice(i, 1);
+                }
+            }
+            // Update transient effects (e.g., shockwaves)
+            for (let i = game.effects.length - 1; i >= 0; i--) {
+                const fx = game.effects[i];
+                if (fx.type === 'shockwave') {
+                    fx.radius += fx.growth;
+                    fx.alpha -= 0.04;
+                    if (fx.alpha <= 0) game.effects.splice(i, 1);
                 }
             }
         }
@@ -519,12 +667,45 @@
                                 }
                             }
                         }
+                        // Jump pad: bounce the player upwards strongly when landing on top
+                        if (obstacle.type === 'pad' && player.velocity >= 0) {
+                            if (player.y + player.height + player.velocity >= obstacle.y &&
+                                player.y + player.height <= obstacle.y + player.velocity) {
+                                player.y = obstacle.y - player.height;
+                                player.velocity = Math.min(-1, game.jumpForce * 1.35);
+                                player.jumping = true;
+                                createParticles(player.x + player.width/2, player.y + player.height, '#00FFFF', 20);
+                            }
+                        }
+                        // Air orb: if pressed while intersecting, grant an extra jump and consume orb
+                        if (obstacle.type === 'orb' && !obstacle.used) {
+                            if (game.jumpPressed) {
+                                obstacle.used = true;
+                                // remove the orb by shrinking; filtered later
+                                player.velocity = game.jumpForce;
+                                player.jumping = true;
+                                createParticles(obstacle.x, obstacle.y, '#00FFFF', 15);
+                            }
+                        }
+                        if (obstacle.type === 'portal' && !obstacle.activated) {
+                            game.speedBoostTimer = 100;
+                            obstacle.activated = true;
+                            // spawn a shockwave effect at portal center
+                            game.effects.push({
+                                type: 'shockwave',
+                                x: obstacle.x + obstacle.width/2,
+                                y: obstacle.y + obstacle.height/2,
+                                radius: 10,
+                                growth: 6,
+                                alpha: 0.6,
+                            });
+                        }
                     }
                 }
             }
 
-            if (player.y >= canvas.height - 130) {
-                player.y = canvas.height - 130;
+            if (player.y >= groundTop() - player.height) {
+                player.y = groundTop() - player.height;
                 player.velocity = 0;
                 player.jumping = false;
                 if (game.jumpPressed) {
@@ -548,8 +729,31 @@
 
         function drawGame() {
             ctx.clearRect(0, 0, canvas.width, canvas.height);
+            // Background parallax stars
+            drawStarfield();
+            // Ground horizon
+            const beat = (game.beat || 0);
+            const lineThickness = 2 + Math.round(beat * 2);
             ctx.fillStyle = '#00FFFF';
-            ctx.fillRect(0, canvas.height - 100, canvas.width, 2);
+            ctx.fillRect(0, canvas.height - 100, canvas.width, lineThickness);
+            // Transient effects (shockwaves)
+            game.effects.forEach(fx => {
+                if (fx.type === 'shockwave') {
+                    const sx = fx.x - game.cameraX;
+                    ctx.save();
+                    ctx.globalAlpha = Math.max(0, fx.alpha);
+                    ctx.strokeStyle = 'rgba(0,255,255,0.8)';
+                    ctx.lineWidth = 3;
+                    ctx.beginPath();
+                    ctx.arc(sx, fx.y, fx.radius, 0, Math.PI * 2);
+                    ctx.stroke();
+                    ctx.restore();
+                }
+            });
+            // Speed lines during boosts
+            if (game.speedBoostTimer > 0 && game.showSpeedLines) {
+                drawSpeedLines();
+            }
 
             game.coins.forEach(coin => {
                 if (!coin.collected && coin.x > player.worldX - 800 && coin.x < player.worldX + 800) {
@@ -587,6 +791,53 @@
                         ctx.lineTo(screenX + obstacle.width, obstacle.y + obstacle.height);
                         ctx.closePath();
                         ctx.fill();
+                    } else if (obstacle.type === 'portal') {
+                        const t = (obstacle.phase = (obstacle.phase || 0) + 0.08);
+                        // outer glow ring
+                        ctx.save();
+                        ctx.translate(screenX + obstacle.width/2, obstacle.y + obstacle.height/2);
+                        ctx.rotate(Math.sin(t) * 0.2);
+                        const grad = ctx.createRadialGradient(0, 0, 0, 0, 0, 40);
+                        grad.addColorStop(0, 'rgba(123,0,255,0.6)');
+                        grad.addColorStop(1, 'rgba(0,0,0,0)');
+                        ctx.fillStyle = grad;
+                        ctx.beginPath();
+                        ctx.arc(0, 0, 40, 0, Math.PI * 2);
+                        ctx.fill();
+                        // inner gate
+                        ctx.strokeStyle = obstacle.activated ? 'rgba(123,0,255,0.3)' : '#7B00FF';
+                        ctx.lineWidth = 3;
+                        ctx.beginPath();
+                        ctx.ellipse(0, 0, 12 + Math.sin(t) * 2, 30 + Math.cos(t) * 3, 0, 0, Math.PI * 2);
+                        ctx.stroke();
+                        ctx.restore();
+                    } else if (obstacle.type === 'pad') {
+                        // glowing jump pad
+                        const grad = ctx.createLinearGradient(0, obstacle.y, 0, obstacle.y + obstacle.height);
+                        grad.addColorStop(0, '#00FFFF');
+                        grad.addColorStop(1, '#007777');
+                        ctx.fillStyle = grad;
+                        ctx.shadowColor = '#00FFFF';
+                        ctx.shadowBlur = 10;
+                        ctx.fillRect(screenX, obstacle.y, obstacle.width, obstacle.height);
+                        ctx.shadowBlur = 0;
+                    } else if (obstacle.type === 'orb' && !obstacle.used) {
+                        // floating orb
+                        const t = (obstacle.phase = (obstacle.phase || 0) + 0.12);
+                        const r = 12 + Math.sin(t) * 2;
+                        const cx = screenX + obstacle.width/2;
+                        const cy = obstacle.y + obstacle.height/2 + Math.sin(t*1.3) * 4;
+                        const g = ctx.createRadialGradient(cx, cy, 0, cx, cy, r+8);
+                        g.addColorStop(0, 'rgba(0,255,255,0.7)');
+                        g.addColorStop(1, 'rgba(0,255,255,0)');
+                        ctx.fillStyle = g;
+                        ctx.beginPath();
+                        ctx.arc(cx, cy, r+8, 0, Math.PI*2);
+                        ctx.fill();
+                        ctx.fillStyle = '#00FFFF';
+                        ctx.beginPath();
+                        ctx.arc(cx, cy, r/2, 0, Math.PI*2);
+                        ctx.fill();
                     } else {
                         ctx.fillRect(screenX, obstacle.y, obstacle.width, obstacle.height);
                     }
@@ -606,6 +857,21 @@
             }
 
             const screenX = player.x;
+            // draw neon trail behind player
+            if (player.trail.length > 1) {
+                ctx.save();
+                ctx.globalCompositeOperation = 'lighter';
+                for (let i = 0; i < player.trail.length; i++) {
+                    const p = player.trail[i];
+                    const a = i / player.trail.length;
+                    ctx.fillStyle = `rgba(0,255,255,${0.1 + a * 0.25})`;
+                    ctx.beginPath();
+                    ctx.arc(p.x, p.y, 6 * a, 0, Math.PI * 2);
+                    ctx.fill();
+                }
+                ctx.restore();
+            }
+            // draw player
             ctx.fillStyle = '#00FFFF';
             ctx.fillRect(screenX, player.y, player.width, player.height);
 
@@ -623,9 +889,16 @@
             if (!game.running || game.isPaused) return;
 
             if (player.isAlive) {
-                player.worldX += game.speed;
+                const currentSpeed = game.speed + (game.speedBoostTimer > 0 ? game.speedBoostAmount : 0);
+                player.worldX += currentSpeed;
                 player.velocity += game.gravity;
                 player.y += player.velocity;
+
+                // Update player neon trail (store recent positions)
+                player.trail.push({ x: player.x + player.width/2, y: player.y + player.height/2 });
+                if (player.trail.length > 12) player.trail.shift();
+
+                
 
                 checkCollisions();
 
@@ -642,6 +915,19 @@
 
                 game.obstacles = game.obstacles.filter(obs => obs.x > player.worldX - 800);
                 updateScore();
+                if (game.speedBoostTimer > 0) game.speedBoostTimer--;
+            }
+
+            // Beat detection sampling
+            if (game.analyser && game.freqData) {
+                game.analyser.getByteFrequencyData(game.freqData);
+                let sum = 0;
+                const bins = Math.min(8, game.freqData.length);
+                for (let i = 0; i < bins; i++) sum += game.freqData[i];
+                const avg = sum / (bins * 255);
+                const instant = Math.max(0, Math.min(1, (avg - 0.05) * 2.0));
+                game.beatSmoothed = game.beatSmoothed * 0.85 + instant * 0.15;
+                game.beat = game.beatSmoothed;
             }
 
             updateParticles();
@@ -653,7 +939,7 @@
             if (e.code === 'Space' || e.code === 'ArrowUp') {
                 game.jumpPressed = true;
                 if (game.running && player.isAlive && !player.jumping) {
-                    player.velocity = game.jumpForce;
+                    player.velocity = (game.gravity > 0) ? game.jumpForce : -game.jumpForce;
                     player.jumping = true;
                     createParticles(player.x + player.width/2, player.y + player.height, '#00FFFF');
                 }
@@ -673,7 +959,7 @@
             e.preventDefault();
             game.jumpPressed = true;
             if (game.running && player.isAlive && !player.jumping) {
-                player.velocity = game.jumpForce;
+                player.velocity = (game.gravity > 0) ? game.jumpForce : -game.jumpForce;
                 player.jumping = true;
                 createParticles(player.x + player.width/2, player.y + player.height, '#00FFFF');
             }
