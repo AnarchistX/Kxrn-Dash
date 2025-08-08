@@ -26,8 +26,32 @@
             text-shadow: 0 0 10px #00FFFF;
             z-index: 100;
         }
-        #score { top: 20px; left: 20px; }
+        #score { top: 20px; left: 56px; }
         #attempts { top: 20px; right: 20px; }
+        #homeBtn {
+            position: fixed;
+            top: 12px;
+            left: 12px;
+            width: 28px;
+            height: 28px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #00FFFF;
+            border: 1px solid #00FFFF;
+            background: rgba(10, 20, 35, 0.6);
+            text-decoration: none;
+            font-family: 'Orbitron', sans-serif;
+            font-size: 14px;
+            line-height: 1;
+            border-radius: 4px;
+            box-shadow: 0 0 10px #00FFFF66;
+            z-index: 2000;
+        }
+        #homeBtn:hover {
+            background: rgba(10, 20, 35, 0.85);
+            box-shadow: 0 0 14px #00FFFFAA;
+        }
         #menu, #gameOver, #pauseMenu, #orientationPrompt {
             position: fixed;
             top: 50%;
@@ -99,6 +123,7 @@
     <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@700&display=swap" rel="stylesheet">
 </head>
 <body>
+    <a id="homeBtn" href="/" title="Home">←</a>
     <div class="grid"></div>
     <canvas id="gameCanvas"></canvas>
     <div id="score">Score: 0</div>
