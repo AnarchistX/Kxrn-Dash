@@ -36,9 +36,9 @@ export default class MenuScene extends Phaser.Scene {
     this.add.text(24, 72, `Surface: ${this.race.surface}  •  Condition: ${this.race.condition}  •  Distance: ${this.race.distanceF}f  •  Weather: ${this.race.weather}`,
       { fontSize: '14px', color: '#9ecbff' });
 
-    // Bankroll
+    // Bankroll (shifted right so it doesn't overlap the Home button)
     const bankroll = this.registry.get('bankroll') ?? 1000;
-    this.ui.bankText = this.add.text(24, 24, `Bankroll: $${bankroll}`, {
+    this.ui.bankText = this.add.text(72, 24, `Bankroll: $${bankroll}`, {
       fontSize: '18px', color: '#94c6ff'
     });
 
