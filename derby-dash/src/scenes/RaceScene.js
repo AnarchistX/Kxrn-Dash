@@ -893,23 +893,28 @@ export default class RaceScene extends Phaser.Scene {
 
     const clampAlloc = (x) => Math.max(1e-6, x || 0);
     if (pools && pools.takeout) {
+      // Important: We deducted stake at race start. Tote (decimal) odds include the returned stake.
+      // Therefore we must pay back (stake + winnings). That is: payout = betAmt * (1 + netSharePerDollar).
       if (type === 'win' && pos === 0) {
         const after = pools.win.total * (1 - (pools.takeout.win ?? 0.18));
         const alloc = clampAlloc(pools.win.alloc[this.betIdx]);
-        const perDollar = after / alloc;
-        payout = Math.round(this.betAmt * perDollar);
+        const perDollarNet = after / alloc;          // winnings per $1 (excludes stake)
+        const perDollarReturn = 1 + perDollarNet;    // total returned per $1 (includes stake)
+        payout = Math.round(this.betAmt * perDollarReturn);
       } else if (type === 'place' && pos > -1 && pos <= 1) {
         const after = pools.place.total * (1 - (pools.takeout.place ?? 0.18));
         const split = after / 2;
         const alloc = clampAlloc(pools.place.alloc[this.betIdx]);
-        const perDollar = split / alloc;
-        payout = Math.round(this.betAmt * perDollar);
+        const perDollarNet = split / alloc;
+        const perDollarReturn = 1 + perDollarNet;
+        payout = Math.round(this.betAmt * perDollarReturn);
       } else if (type === 'show' && pos > -1 && pos <= 2) {
         const after = pools.show.total * (1 - (pools.takeout.show ?? 0.18));
         const split = after / 3;
         const alloc = clampAlloc(pools.show.alloc[this.betIdx]);
-        const perDollar = split / alloc;
-        payout = Math.round(this.betAmt * perDollar);
+        const perDollarNet = split / alloc;
+        const perDollarReturn = 1 + perDollarNet;
+        payout = Math.round(this.betAmt * perDollarReturn);
       }
     } else {
       // Fallback: legacy fixed odds (decimal includes stake)
