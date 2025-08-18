@@ -40,6 +40,10 @@ export default class BootScene extends Phaser.Scene {
     g.generateTexture('bgGradient', width, height);
     g.destroy();
 
-    this.scene.start('MenuScene');
+    // eslint-disable-next-line no-console
+    console.log('[BootScene] starting RaceSelectScene');
+    // Clear any stale selection so we always begin at the race card on load
+    try { this.registry.set('raceMeta', null); } catch (_) {}
+    this.scene.start('RaceSelectScene');
   }
 }

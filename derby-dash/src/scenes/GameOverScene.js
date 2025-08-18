@@ -22,7 +22,7 @@ export default class GameOverScene extends Phaser.Scene {
     // Rebuy button
     const btn = this.makeButton(width / 2 - 100, height / 2 - 20, 200, 48, 'Rebuy $1000', () => {
       this.registry.set('bankroll', 1000);
-      this.scene.start('MenuScene');
+      this.scene.start('RaceSelectScene');
     });
     btn.setDepth(5);
 

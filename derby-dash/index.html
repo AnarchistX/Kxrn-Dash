@@ -13,7 +13,9 @@
   <div id="game"></div>
   <noscript>Please enable JavaScript to play.</noscript>
   <script type="module">
-    import('./src/main.js').catch(e => console.error('Failed to load main.js', e));
+    // Cache-bust to ensure latest modules load after edits
+    const v = Date.now();
+    import(`./src/main.js?v=${v}`).catch(e => console.error('Failed to load main.js', e));
   </script>
 </body>
 </html>

@@ -1,7 +1,12 @@
-import BootScene from './scenes/BootScene.js';
-import MenuScene from './scenes/MenuScene.js';
-import RaceScene from './scenes/RaceScene.js';
-import GameOverScene from './scenes/GameOverScene.js';
+// Dynamic imports with cache-busting to ensure latest modules load
+const v = Date.now();
+const [BootScene, RaceSelectScene, MenuScene, RaceScene, GameOverScene] = await Promise.all([
+  import(`./scenes/BootScene.js?v=${v}`),
+  import(`./scenes/RaceSelectScene.js?v=${v}`),
+  import(`./scenes/MenuScene.js?v=${v}`),
+  import(`./scenes/RaceScene.js?v=${v}`),
+  import(`./scenes/GameOverScene.js?v=${v}`)
+]).then(mods => mods.map(m => m.default));
 
 const config = {
   type: Phaser.AUTO,
@@ -14,7 +19,8 @@ const config = {
     height: window.innerHeight,
   },
   physics: { default: 'arcade' },
-  scene: [BootScene, MenuScene, RaceScene, GameOverScene],
+  dom: { createContainer: true },
+  scene: [BootScene, RaceSelectScene, MenuScene, RaceScene, GameOverScene],
 };
 
 function startGame() {
