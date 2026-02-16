@@ -1,13 +1,24 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>KXRNAGE</title>
   <style>
-    :root { color-scheme: dark; }
-    * { box-sizing: border-box; }
-    html, body { height: 100%; }
+    :root {
+      color-scheme: dark;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    html,
+    body {
+      height: 100%;
+    }
+
     body {
       margin: 0;
       font-family: system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, "Apple Color Emoji", "Segoe UI Emoji";
@@ -16,29 +27,66 @@
       display: grid;
       place-items: center;
     }
+
     .wrap {
       width: min(960px, 92vw);
       padding: 48px 24px;
     }
+
     header h1 {
       margin: 0 0 8px;
       font-weight: 700;
       letter-spacing: 1px;
     }
-    header p { margin: 0; color: #ccc; }
-    .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 16px; margin-top: 32px; }
+
+    header p {
+      margin: 0;
+      color: #ccc;
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: 16px;
+      margin-top: 32px;
+    }
+
     .card {
       border: 1px solid #f1f1f1;
       padding: 20px;
-      display: flex; flex-direction: column; gap: 12px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
       background: #000;
     }
-    .card h2 { margin: 0; font-size: 1.25rem; }
-    .pill { display: inline-block; border: 1px solid #f1f1f1; padding: 10px 14px; text-decoration: none; color: #f1f1f1; text-align: center; }
-    .pill:hover { background: #f1f1f1; color: #000; }
-    footer { margin-top: 32px; font-size: 0.9rem; color: #aaa; }
+
+    .card h2 {
+      margin: 0;
+      font-size: 1.25rem;
+    }
+
+    .pill {
+      display: inline-block;
+      border: 1px solid #f1f1f1;
+      padding: 10px 14px;
+      text-decoration: none;
+      color: #f1f1f1;
+      text-align: center;
+    }
+
+    .pill:hover {
+      background: #f1f1f1;
+      color: #000;
+    }
+
+    footer {
+      margin-top: 32px;
+      font-size: 0.9rem;
+      color: #aaa;
+    }
   </style>
 </head>
+
 <body>
   <main class="wrap">
     <header>
@@ -59,10 +107,16 @@
         <div><a class="pill" href="/derby-dash/">Play</a></div>
       </article>
 
-      <article class="card" aria-disabled="true">
-        <h2>Coming Soon</h2>
-        <p>More games will appear here.</p>
-        <div><span class="pill" style="pointer-events:none; opacity:.6;">Not Available</span></div>
+      <article class="card">
+        <h2>Shatter</h2>
+        <p>Break everything.</p>
+        <div><a class="pill" href="/shatter/">Play</a></div>
+      </article>
+
+      <article class="card">
+        <h2>Coil</h2>
+        <p>Eat. Grow. Survive.</p>
+        <div><a class="pill" href="/coil/">Play</a></div>
       </article>
     </section>
 
@@ -74,4 +128,5 @@
     document.getElementById('year').textContent = new Date().getFullYear();
   </script>
 </body>
+
 </html>

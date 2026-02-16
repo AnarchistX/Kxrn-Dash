@@ -1,0 +1,680 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Coil — KXRNAGE</title>
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@700&display=swap" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            background: #0a0a1a;
+            overflow: hidden;
+            font-family: 'Orbitron', sans-serif;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            touch-action: none;
+            -webkit-touch-callout: none;
+            -webkit-user-select: none;
+            user-select: none;
+        }
+
+        canvas {
+            display: block;
+            border: 2px solid #00FFFF;
+            box-shadow: 0 0 30px rgba(0, 255, 255, 0.3);
+        }
+
+        #homeBtn {
+            position: fixed;
+            top: 12px;
+            left: 12px;
+            width: 28px;
+            height: 28px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #00FFFF;
+            border: 1px solid #00FFFF;
+            background: rgba(10, 20, 35, 0.6);
+            text-decoration: none;
+            font-family: 'Orbitron', sans-serif;
+            font-size: 14px;
+            line-height: 1;
+            border-radius: 4px;
+            box-shadow: 0 0 10px #00FFFF66;
+            z-index: 2000;
+        }
+
+        #homeBtn:hover {
+            background: rgba(10, 20, 35, 0.85);
+            box-shadow: 0 0 14px #00FFFFAA;
+        }
+
+        .overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            background: rgba(10, 10, 26, 0.92);
+            z-index: 1000;
+        }
+
+        .overlay.hidden {
+            display: none;
+        }
+
+        .overlay h1 {
+            font-size: clamp(32px, 6vw, 64px);
+            color: #00FFFF;
+            text-shadow: 0 0 20px #00FFFF, 0 0 40px #00FFFF44;
+            letter-spacing: 4px;
+            margin-bottom: 12px;
+        }
+
+        .overlay h2 {
+            font-size: clamp(14px, 2.5vw, 22px);
+            color: #FF00FF;
+            text-shadow: 0 0 12px #FF00FF;
+            margin-bottom: 28px;
+            font-weight: 400;
+        }
+
+        .overlay p {
+            color: #aaa;
+            font-size: 14px;
+            margin-bottom: 8px;
+            font-family: system-ui, sans-serif;
+        }
+
+        .overlay .score-line {
+            color: #FFD700;
+            font-size: 20px;
+            text-shadow: 0 0 10px #FFD700;
+            margin-bottom: 8px;
+        }
+
+        .btn {
+            font-size: clamp(16px, 2.5vw, 24px);
+            padding: 14px 36px;
+            margin: 8px;
+            background: #00FFFF;
+            color: #0a0a1a;
+            border: none;
+            cursor: pointer;
+            font-family: 'Orbitron', sans-serif;
+            box-shadow: 0 0 12px #00FFFF;
+            letter-spacing: 1px;
+            min-width: 200px;
+        }
+
+        .btn:hover {
+            background: #00CCCC;
+            box-shadow: 0 0 24px #00CCCC;
+        }
+
+        .info-section {
+            margin: 10px 0 4px;
+            color: #FF00FF;
+            font-size: clamp(12px, 1.8vw, 14px);
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            text-shadow: 0 0 8px #FF00FF;
+        }
+
+        .info-controls {
+            color: #aaa;
+            font-size: clamp(11px, 1.5vw, 13px);
+            font-family: system-ui, sans-serif;
+            line-height: 1.6;
+            margin: 4px 0 8px;
+            text-align: center;
+        }
+
+        .info-controls kbd {
+            background: rgba(0, 255, 255, 0.15);
+            color: #00FFFF;
+            padding: 2px 8px;
+            border-radius: 4px;
+            font-family: 'Orbitron', sans-serif;
+            font-size: 0.85em;
+        }
+
+        .info-rules {
+            color: #aaa;
+            font-size: clamp(11px, 1.5vw, 13px);
+            font-family: system-ui, sans-serif;
+            line-height: 1.8;
+            margin: 4px 0;
+            text-align: center;
+        }
+
+        .info-rules span {
+            color: #FF0055;
+        }
+
+        /* On-screen D-pad for mobile */
+        #dpad {
+            display: none;
+            position: fixed;
+            bottom: 16px;
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 500;
+            width: 160px;
+            height: 160px;
+        }
+
+        .dpad-btn {
+            position: absolute;
+            width: 52px;
+            height: 52px;
+            background: rgba(0, 255, 255, 0.15);
+            border: 1px solid rgba(0, 255, 255, 0.4);
+            border-radius: 10px;
+            color: #00FFFF;
+            font-size: 22px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        .dpad-btn:active {
+            background: rgba(0, 255, 255, 0.35);
+        }
+
+        .dpad-up {
+            top: 0;
+            left: 50%;
+            transform: translateX(-50%);
+        }
+
+        .dpad-down {
+            bottom: 0;
+            left: 50%;
+            transform: translateX(-50%);
+        }
+
+        .dpad-left {
+            top: 50%;
+            left: 0;
+            transform: translateY(-50%);
+        }
+
+        .dpad-right {
+            top: 50%;
+            right: 0;
+            transform: translateY(-50%);
+        }
+
+        @media (pointer: coarse) {
+            #dpad {
+                display: block;
+            }
+
+            canvas {
+                max-height: calc(100vh - 200px);
+            }
+        }
+
+        #hud {
+            position: fixed;
+            top: 14px;
+            left: 56px;
+            right: 20px;
+            display: flex;
+            justify-content: space-between;
+            z-index: 100;
+            pointer-events: none;
+        }
+
+        #hud span {
+            color: #00FFFF;
+            font-family: 'Orbitron', sans-serif;
+            font-size: clamp(14px, 2vw, 24px);
+            text-shadow: 0 0 10px #00FFFF;
+        }
+    </style>
+</head>
+
+<body>
+    <a id="homeBtn" href="/" title="Home">←</a>
+    <canvas id="c"></canvas>
+
+    <div id="hud" class="hidden">
+        <span id="hudScore">Score: 0</span>
+        <span id="hudHigh">Best: 0</span>
+    </div>
+
+    <!-- Menu -->
+    <div id="menuOverlay" class="overlay">
+        <h1>COIL</h1>
+        <h2>CONSUME</h2>
+
+        <p class="info-section">Objective</p>
+        <p class="info-controls">Eat the glowing orbs to grow longer. Survive as long as you can!</p>
+
+        <p class="info-section">Controls</p>
+        <p class="info-controls">
+            <kbd>←</kbd> <kbd>↑</kbd> <kbd>↓</kbd> <kbd>→</kbd> / <kbd>WASD</kbd> — Desktop<br>
+            D-pad / Swipe — Mobile
+        </p>
+
+        <p class="info-section">Rules</p>
+        <p class="info-rules">
+            <span>✖</span> Hit a wall = death<br>
+            <span>✖</span> Hit yourself = death<br>
+            ⚡ Every orb makes you faster
+        </p>
+
+        <button class="btn" onclick="startGame()" style="margin-top:12px;">PLAY</button>
+    </div>
+
+    <!-- D-pad (shown on touch devices) -->
+    <div id="dpad">
+        <button class="dpad-btn dpad-up" data-dir="up">▲</button>
+        <button class="dpad-btn dpad-down" data-dir="down">▼</button>
+        <button class="dpad-btn dpad-left" data-dir="left">◀</button>
+        <button class="dpad-btn dpad-right" data-dir="right">▶</button>
+    </div>
+
+    <!-- Game Over -->
+    <div id="gameOverOverlay" class="overlay hidden">
+        <h1>GAME OVER</h1>
+        <p class="score-line" id="finalScore">Score: 0</p>
+        <p class="score-line" id="highScoreText" style="font-size:14px;color:#aaa;"></p>
+        <button class="btn" onclick="startGame()">TRY AGAIN</button>
+        <button class="btn" onclick="showMenu()">MENU</button>
+    </div>
+
+    <script>
+        // ─── Canvas ──────────────────────────────────────────────
+        const canvas = document.getElementById('c');
+        const ctx = canvas.getContext('2d');
+
+        const GRID = 20;      // cell size
+        const COLS = 25;
+        const ROWS = 25;
+
+        function resize() {
+            const maxSide = Math.min(window.innerWidth, window.innerHeight) * 0.88;
+            const cellPx = Math.floor(maxSide / COLS);
+            canvas.width = cellPx * COLS;
+            canvas.height = cellPx * ROWS;
+            return cellPx;
+        }
+        let cell = resize();
+        window.addEventListener('resize', () => { cell = resize(); });
+
+        // ─── Stars ───────────────────────────────────────────────
+        let stars = [];
+        function initStars() {
+            stars = Array.from({ length: 60 }, () => ({
+                x: Math.random() * canvas.width,
+                y: Math.random() * canvas.height,
+                r: Math.random() * 1.2 + 0.4,
+                a: Math.random(),
+                da: (Math.random() - 0.5) * 0.015
+            }));
+        }
+
+        function drawStars() {
+            stars.forEach(s => {
+                s.a += s.da;
+                if (s.a > 1 || s.a < 0.1) s.da *= -1;
+                ctx.globalAlpha = s.a * 0.3;
+                ctx.fillStyle = '#00FFFF';
+                ctx.beginPath();
+                ctx.arc(s.x, s.y, s.r, 0, Math.PI * 2);
+                ctx.fill();
+            });
+            ctx.globalAlpha = 1;
+        }
+
+        // ─── Grid lines ──────────────────────────────────────────
+        function drawGrid() {
+            ctx.strokeStyle = 'rgba(0,255,255,0.04)';
+            ctx.lineWidth = 1;
+            for (let x = 0; x <= canvas.width; x += cell) {
+                ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, canvas.height); ctx.stroke();
+            }
+            for (let y = 0; y <= canvas.height; y += cell) {
+                ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(canvas.width, y); ctx.stroke();
+            }
+        }
+
+        // ─── State ───────────────────────────────────────────────
+        let state = 'menu';
+        let snake, dir, nextDir, food, score, particles = [], tickRate, tickTimer, lastTime;
+
+        const FOOD_COLORS = ['#FF0055', '#FFD700', '#FF00FF', '#00FF88', '#FF6600', '#AA00FF'];
+
+        function initGame() {
+            const cx = Math.floor(COLS / 2);
+            const cy = Math.floor(ROWS / 2);
+            snake = [
+                { x: cx, y: cy },
+                { x: cx - 1, y: cy },
+                { x: cx - 2, y: cy }
+            ];
+            dir = { x: 1, y: 0 };
+            nextDir = { x: 1, y: 0 };
+            score = 0;
+            particles = [];
+            tickRate = 130; // ms per tick
+            tickTimer = 0;
+            lastTime = performance.now();
+            spawnFood();
+        }
+
+        function spawnFood() {
+            let pos;
+            do {
+                pos = { x: Math.floor(Math.random() * COLS), y: Math.floor(Math.random() * ROWS) };
+            } while (snake.some(s => s.x === pos.x && s.y === pos.y));
+            food = { ...pos, color: FOOD_COLORS[Math.floor(Math.random() * FOOD_COLORS.length)], pulse: 0 };
+        }
+
+        // ─── Particles ───────────────────────────────────────────
+        function spawnParticles(px, py, color, count = 10) {
+            for (let i = 0; i < count; i++) {
+                particles.push({
+                    x: px, y: py,
+                    vx: (Math.random() - 0.5) * 6,
+                    vy: (Math.random() - 0.5) * 6,
+                    r: Math.random() * 3 + 1,
+                    life: 1,
+                    color
+                });
+            }
+        }
+
+        function updateParticles(dt) {
+            for (let i = particles.length - 1; i >= 0; i--) {
+                const p = particles[i];
+                p.x += p.vx;
+                p.y += p.vy;
+                p.life -= dt * 2;
+                if (p.life <= 0) particles.splice(i, 1);
+            }
+        }
+
+        function drawParticles() {
+            particles.forEach(p => {
+                ctx.globalAlpha = Math.max(0, p.life);
+                ctx.fillStyle = p.color;
+                ctx.shadowColor = p.color;
+                ctx.shadowBlur = 8;
+                ctx.beginPath();
+                ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
+                ctx.fill();
+            });
+            ctx.globalAlpha = 1;
+            ctx.shadowBlur = 0;
+        }
+
+        // ─── Drawing ─────────────────────────────────────────────
+        function drawSnake() {
+            snake.forEach((seg, i) => {
+                const px = seg.x * cell;
+                const py = seg.y * cell;
+                const pad = 1;
+                const isHead = i === 0;
+
+                // Glow trail
+                if (!isHead) {
+                    const alpha = 0.15 + (1 - i / snake.length) * 0.15;
+                    ctx.fillStyle = `rgba(0,255,255,${alpha})`;
+                    ctx.fillRect(px - 2, py - 2, cell + 4, cell + 4);
+                }
+
+                // Body
+                const hue = isHead ? '#FFFFFF' : `hsl(${180 + i * 3}, 100%, ${70 - i * 0.5}%)`;
+                ctx.fillStyle = hue;
+                ctx.shadowColor = '#00FFFF';
+                ctx.shadowBlur = isHead ? 16 : 6;
+                ctx.fillRect(px + pad, py + pad, cell - pad * 2, cell - pad * 2);
+                ctx.shadowBlur = 0;
+
+                // Eyes on head
+                if (isHead) {
+                    ctx.fillStyle = '#0a0a1a';
+                    const eyeSize = cell * 0.18;
+                    const eyeOff = cell * 0.28;
+                    if (dir.x !== 0) {
+                        ctx.beginPath();
+                        ctx.arc(px + cell / 2 + dir.x * 3, py + eyeOff, eyeSize, 0, Math.PI * 2);
+                        ctx.fill();
+                        ctx.beginPath();
+                        ctx.arc(px + cell / 2 + dir.x * 3, py + cell - eyeOff, eyeSize, 0, Math.PI * 2);
+                        ctx.fill();
+                    } else {
+                        ctx.beginPath();
+                        ctx.arc(px + eyeOff, py + cell / 2 + dir.y * 3, eyeSize, 0, Math.PI * 2);
+                        ctx.fill();
+                        ctx.beginPath();
+                        ctx.arc(px + cell - eyeOff, py + cell / 2 + dir.y * 3, eyeSize, 0, Math.PI * 2);
+                        ctx.fill();
+                    }
+                }
+            });
+        }
+
+        function drawFood() {
+            food.pulse += 0.08;
+            const px = food.x * cell + cell / 2;
+            const py = food.y * cell + cell / 2;
+            const r = cell * 0.35 + Math.sin(food.pulse) * 3;
+
+            // Outer glow
+            const grad = ctx.createRadialGradient(px, py, 0, px, py, r + 12);
+            grad.addColorStop(0, food.color + '66');
+            grad.addColorStop(1, food.color + '00');
+            ctx.fillStyle = grad;
+            ctx.beginPath();
+            ctx.arc(px, py, r + 12, 0, Math.PI * 2);
+            ctx.fill();
+
+            // Core
+            ctx.fillStyle = food.color;
+            ctx.shadowColor = food.color;
+            ctx.shadowBlur = 14;
+            ctx.beginPath();
+            ctx.arc(px, py, r, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.shadowBlur = 0;
+        }
+
+        // ─── Game Logic ──────────────────────────────────────────
+        function tick() {
+            // Apply queued direction
+            dir = { ...nextDir };
+
+            // Move head
+            const head = { x: snake[0].x + dir.x, y: snake[0].y + dir.y };
+
+            // Wall collision
+            if (head.x < 0 || head.x >= COLS || head.y < 0 || head.y >= ROWS) {
+                die(); return;
+            }
+            // Self collision
+            if (snake.some(s => s.x === head.x && s.y === head.y)) {
+                die(); return;
+            }
+
+            snake.unshift(head);
+
+            // Eat food
+            if (head.x === food.x && head.y === food.y) {
+                score += 10;
+                spawnParticles(food.x * cell + cell / 2, food.y * cell + cell / 2, food.color, 18);
+                spawnFood();
+                // Speed up slightly
+                tickRate = Math.max(55, tickRate - 2);
+            } else {
+                snake.pop();
+            }
+        }
+
+        function die() {
+            state = 'gameover';
+            // Explode
+            snake.forEach((s, i) => {
+                setTimeout(() => spawnParticles(s.x * cell + cell / 2, s.y * cell + cell / 2, '#00FFFF', 6), i * 30);
+            });
+            saveHigh(score);
+            document.getElementById('finalScore').textContent = `Score: ${score}`;
+            const hi = getHigh();
+            document.getElementById('highScoreText').textContent = score >= hi ? '🏆 NEW HIGH SCORE!' : `Best: ${hi}`;
+            document.getElementById('gameOverOverlay').classList.remove('hidden');
+            document.getElementById('hud').classList.add('hidden');
+        }
+
+        function saveHigh(s) {
+            try { const h = getHigh(); if (s > h) localStorage.setItem('voidSnakeHigh', s); } catch (e) { }
+        }
+        function getHigh() {
+            try { return parseInt(localStorage.getItem('voidSnakeHigh') || '0', 10); } catch (e) { return 0; }
+        }
+
+        // ─── Input ───────────────────────────────────────────────
+        document.addEventListener('keydown', e => {
+            if (state !== 'playing') return;
+            switch (e.code) {
+                case 'ArrowUp': case 'KeyW':
+                    if (dir.y === 0) nextDir = { x: 0, y: -1 }; break;
+                case 'ArrowDown': case 'KeyS':
+                    if (dir.y === 0) nextDir = { x: 0, y: 1 }; break;
+                case 'ArrowLeft': case 'KeyA':
+                    if (dir.x === 0) nextDir = { x: -1, y: 0 }; break;
+                case 'ArrowRight': case 'KeyD':
+                    if (dir.x === 0) nextDir = { x: 1, y: 0 }; break;
+            }
+        });
+
+        // Touch / swipe
+        let touchStart = null;
+        canvas.addEventListener('touchstart', e => {
+            e.preventDefault();
+            touchStart = { x: e.touches[0].clientX, y: e.touches[0].clientY };
+        }, { passive: false });
+        canvas.addEventListener('touchend', e => {
+            if (!touchStart || state !== 'playing') return;
+            const dx = e.changedTouches[0].clientX - touchStart.x;
+            const dy = e.changedTouches[0].clientY - touchStart.y;
+            if (Math.abs(dx) > Math.abs(dy)) {
+                if (dx > 20 && dir.x === 0) nextDir = { x: 1, y: 0 };
+                else if (dx < -20 && dir.x === 0) nextDir = { x: -1, y: 0 };
+            } else {
+                if (dy > 20 && dir.y === 0) nextDir = { x: 0, y: 1 };
+                else if (dy < -20 && dir.y === 0) nextDir = { x: 0, y: -1 };
+            }
+            touchStart = null;
+        }, { passive: false });
+
+        // D-pad buttons
+        document.querySelectorAll('.dpad-btn').forEach(btn => {
+            btn.addEventListener('touchstart', e => {
+                e.preventDefault();
+                if (state !== 'playing') return;
+                const d = btn.dataset.dir;
+                if (d === 'up' && dir.y === 0) nextDir = { x: 0, y: -1 };
+                else if (d === 'down' && dir.y === 0) nextDir = { x: 0, y: 1 };
+                else if (d === 'left' && dir.x === 0) nextDir = { x: -1, y: 0 };
+                else if (d === 'right' && dir.x === 0) nextDir = { x: 1, y: 0 };
+            }, { passive: false });
+            btn.addEventListener('click', e => {
+                if (state !== 'playing') return;
+                const d = btn.dataset.dir;
+                if (d === 'up' && dir.y === 0) nextDir = { x: 0, y: -1 };
+                else if (d === 'down' && dir.y === 0) nextDir = { x: 0, y: 1 };
+                else if (d === 'left' && dir.x === 0) nextDir = { x: -1, y: 0 };
+                else if (d === 'right' && dir.x === 0) nextDir = { x: 1, y: 0 };
+            });
+        });
+
+        // ─── Game Flow ───────────────────────────────────────────
+        function startGame() {
+            hideOverlays();
+            document.getElementById('hud').classList.remove('hidden');
+            document.getElementById('hudHigh').textContent = `Best: ${getHigh()}`;
+            state = 'playing';
+            initGame();
+            initStars();
+        }
+
+        function showMenu() {
+            hideOverlays();
+            document.getElementById('hud').classList.add('hidden');
+            document.getElementById('menuOverlay').classList.remove('hidden');
+            state = 'menu';
+        }
+
+        function hideOverlays() {
+            document.querySelectorAll('.overlay').forEach(o => o.classList.add('hidden'));
+        }
+
+        // ─── Loop ────────────────────────────────────────────────
+        function loop(now) {
+            if (!lastTime) lastTime = now;
+            const dt = now - lastTime;
+            lastTime = now;
+
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            // BG
+            const bg = ctx.createLinearGradient(0, 0, 0, canvas.height);
+            bg.addColorStop(0, '#0a0a1a');
+            bg.addColorStop(1, '#10102a');
+            ctx.fillStyle = bg;
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            drawStars();
+            drawGrid();
+
+            if (state === 'playing') {
+                tickTimer += dt;
+                while (tickTimer >= tickRate) {
+                    tick();
+                    tickTimer -= tickRate;
+                    if (state !== 'playing') break;
+                }
+                document.getElementById('hudScore').textContent = `Score: ${score}`;
+            }
+
+            // Always draw even during gameover so particles render
+            if (snake) {
+                drawSnake();
+                if (food && state === 'playing') drawFood();
+            }
+
+            updateParticles(dt / 1000);
+            drawParticles();
+
+            requestAnimationFrame(loop);
+        }
+        // Init
+        initStars();
+        lastTime = performance.now();
+        tickTimer = 0;
+        requestAnimationFrame(loop);
+    </script>
+</body>
+
+</html>

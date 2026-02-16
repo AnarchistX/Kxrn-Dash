@@ -487,7 +487,7 @@ export default class RaceScene extends Phaser.Scene {
     const hipY = 7;
     const legAnchors = [
       { x: 10, front: true },  // FR
-      { x: 5,  front: true },  // FL
+      { x: 5, front: true },  // FL
       { x: -7, front: false }, // RR
       { x: -13, front: false } // RL
     ];
@@ -510,22 +510,22 @@ export default class RaceScene extends Phaser.Scene {
 
     // Body silhouette (polygon) — longer and slimmer
     const bodyPolyUnder = this.add.polygon(0, 0, [
-      -26, -5,  -22, -10,  -10, -12,   4, -11,   12, -9,   18, -6,
-       20, -2,   20,  5,    8,   9,   -6,  10,  -18,  8,  -24,  2
+      -26, -5, -22, -10, -10, -12, 4, -11, 12, -9, 18, -6,
+      20, -2, 20, 5, 8, 9, -6, 10, -18, 8, -24, 2
     ], darker).setStrokeStyle(1, 0x0b0c10, 0.5);
     const bodyPoly = this.add.polygon(0, -1, [
-      -24, -4,  -20, -9,  -8, -11,   4, -10,  12, -8,   18, -5,
-       19, -1,   18,  4,    8,   8,   -6,  9,  -18,  7,  -22,  2
+      -24, -4, -20, -9, -8, -11, 4, -10, 12, -8, 18, -5,
+      19, -1, 18, 4, 8, 8, -6, 9, -18, 7, -22, 2
     ], base).setStrokeStyle(1, 0x0b0c10, 0.5);
     c.add(bodyPolyUnder);
     c.add(bodyPoly);
 
     // Neck (tapered) and Head (elongated with muzzle)
     const neck = this.add.polygon(14, -6, [
-       -2, -3,   8, -7,   11, -3,    0,  1
+      -2, -3, 8, -7, 11, -3, 0, 1
     ], base).setStrokeStyle(1, 0x0b0c10, 0.5);
     const head = this.add.polygon(27, -7, [
-       -2, -3,   7, -3,   12, -2,  10,  1,   4,  3,   -1,  1
+      -2, -3, 7, -3, 12, -2, 10, 1, 4, 3, -1, 1
     ], dark).setStrokeStyle(1, 0x0b0c10, 0.5);
     c.add(neck);
     c.add(head);
@@ -539,8 +539,8 @@ export default class RaceScene extends Phaser.Scene {
     // Mane (zig-zag polygon along top)
     const maneColor = this.shadeMul(base, 0.45);
     const mane = this.add.polygon(2, -10, [
-      -12, 0,  -8, -3,  -4, -1,   0, -3,   4, -2,   8, -3,  12, -2,
-       10,  1,   6,  0,   2,  1,  -2,  0
+      -12, 0, -8, -3, -4, -1, 0, -3, 4, -2, 8, -3, 12, -2,
+      10, 1, 6, 0, 2, 1, -2, 0
     ], maneColor).setAlpha(0.9).setStrokeStyle(1, 0x0b0c10, 0.4);
     c.add(mane);
 
@@ -550,7 +550,7 @@ export default class RaceScene extends Phaser.Scene {
 
     // Underbelly shade
     const belly = this.add.polygon(-2, 2, [
-      -14, 4,  -2, 6,  10, 5,   8, 7,  -2, 8,  -14, 6
+      -14, 4, -2, 6, 10, 5, 8, 7, -2, 8, -14, 6
     ], 0x000000).setAlpha(0.12);
     c.add(belly);
 
@@ -605,7 +605,7 @@ export default class RaceScene extends Phaser.Scene {
         decimalOdds: d,
         fallbackML: sel?.oddsDec
       });
-    } catch (_) {}
+    } catch (_) { }
     const oddsStr = (Number.isFinite(d) && d > 1) ? this.formatOdds(d) : this.formatOdds(sel.oddsDec || 2.0);
     const label = (this.betType || 'win').toUpperCase();
     this.hud.bet = this.add.text(16, height - 24, `Bet (${label}): $${this.betAmt} on #${this.betIdx + 1} (${sel.name}) @ ${oddsStr}`, { fontSize: '14px', color: '#ffd58a' }).setScrollFactor(0);
@@ -870,8 +870,12 @@ export default class RaceScene extends Phaser.Scene {
     // Final order by finishTime, fallback by distance covered (x or sPx)
     const results = [...this.horses]
       .sort((a, b) => {
-        const ft = (a.finishTime - b.finishTime);
-        if (ft !== 0) return ft;
+        if (a.finished && !b.finished) return -1;
+        if (!a.finished && b.finished) return 1;
+        if (a.finished && b.finished) {
+          const ft = a.finishTime - b.finishTime;
+          if (ft !== 0) return ft;
+        }
         if (this.track.mode === 'oval') return (b.sPx || 0) - (a.sPx || 0);
         return (b.x - a.x);
       })
@@ -918,9 +922,11 @@ export default class RaceScene extends Phaser.Scene {
       }
     } else {
       // Fallback: legacy fixed odds (decimal includes stake)
-      if (type === 'win' && pos === 0) {
-        payout = Math.round(this.betAmt * (winner.oddsDec || 2.0));
-      }
+      const sel = this.field[this.betIdx];
+      const d = sel?.oddsDec || 2.0;
+      if (type === 'win' && pos === 0) payout = Math.round(this.betAmt * d);
+      else if (type === 'place' && pos >= 0 && pos <= 1) payout = Math.round(this.betAmt * (1 + (d - 1) / 2));
+      else if (type === 'show' && pos >= 0 && pos <= 2) payout = Math.round(this.betAmt * (1 + (d - 1) / 3));
     }
 
     if (payout > 0) {

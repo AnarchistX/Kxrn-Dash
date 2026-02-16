@@ -111,7 +111,7 @@ export default class MenuScene extends Phaser.Scene {
       this.scene.start('RaceSelectScene');
     });
     // Glossary / Index
-    this.ui.infoBtn = this.makeButton(width - 560, 22, 160, 36, 'Glossary', () => this.showGlossary());
+    this.ui.infoBtn = this.makeButton(width - 560, 22, 160, 36, 'How to Play', () => this.showGlossary());
 
     // Distance is no longer user-selectable; races are pre-randomized via RaceSelect
 
@@ -194,11 +194,11 @@ export default class MenuScene extends Phaser.Scene {
     el.addEventListener('keydown', (e) => { if (e.key === 'Enter') setTyped(); });
 
     // Clean up DOM on scene shutdown
-    this.events.once('shutdown', () => { try { domInput.destroy(); } catch (_) {} });
+    this.events.once('shutdown', () => { try { domInput.destroy(); } catch (_) { } });
 
     // Bet Type: Win / Place / Show
     this.betType = this.registry.get('betType') || 'win';
-    const types = ['win','place','show'];
+    const types = ['win', 'place', 'show'];
     const labels = { win: 'Win', place: 'Place', show: 'Show' };
     const typeColors = { win: 0x22c55e, place: 0x38bdf8, show: 0xa78bfa }; // green, sky, violet
     const x0 = inputX + 270;
@@ -233,8 +233,6 @@ export default class MenuScene extends Phaser.Scene {
         this.betType = t;
         this.registry.set('betType', this.betType); // persist immediately
         updateBetTypeUI();
-    // Ensure odds/prices reflect the persisted bet type immediately
-    this.updateOddsDisplay();
         this.updateOddsDisplay();
       });
       return { btn, type: t };
@@ -294,6 +292,9 @@ export default class MenuScene extends Phaser.Scene {
       row.g.fillRoundedRect(x, y, w, h, 8);
       row.g.lineStyle(1, 0x1f2a3b, 1);
       row.g.strokeRoundedRect(x + 0.5, y + 0.5, w - 1, h - 1, 8);
+      // Restore color chip
+      row.g.fillStyle(this.field[idx].color, 1);
+      row.g.fillRoundedRect(x + 8, y + 6, 28, h - 12, 6);
     });
   }
 
@@ -555,8 +556,8 @@ export default class MenuScene extends Phaser.Scene {
     const scrim = this.add.rectangle(0, 0, width, height, 0x000000, 0.55).setOrigin(0)
       .setInteractive({ useHandCursor: true })
       .on('pointerdown', () => this.hideGlossary());
-    const panelW = Math.min(720, width - 80);
-    const panelH = Math.min(460, height - 120);
+    const panelW = Math.min(720, width - 40);
+    const panelH = Math.min(540, height - 60);
     const px = (width - panelW) / 2;
     const py = (height - panelH) / 2;
     const g = this.add.graphics();
@@ -564,25 +565,39 @@ export default class MenuScene extends Phaser.Scene {
     g.fillRoundedRect(px, py, panelW, panelH, 12);
     g.lineStyle(1, 0x1f2a3b, 1);
     g.strokeRoundedRect(px + 0.5, py + 0.5, panelW - 1, panelH - 1, 12);
-    const title = this.add.text(width / 2, py + 16, 'Betting Glossary', { fontSize: '22px', color: '#e6edf3' }).setOrigin(0.5, 0);
-    const body = this.add.text(px + 16, py + 52,
-`Win (W): Horse must finish 1st. Payouts come from the Win pool.
-Place (P): Horse must finish 1st or 2nd. The Place pool is split between the top two finishers.
-Show (S): Horse must finish 1st, 2nd, or 3rd. The Show pool is split among the top three.
+    const title = this.add.text(width / 2, py + 14, 'How to Play', { fontSize: '22px', color: '#e6edf3' }).setOrigin(0.5, 0);
+    const body = this.add.text(px + 16, py + 46,
+      `1. SELECT A RACE from the Race Card (surface, distance, field size vary).
+2. PICK A HORSE by tapping its row. Check stats: Pace, Gate, Stamina, Burst, Consistency, Mud.
+3. PLACE A BET using the +10 / +50 / +100 buttons or type a custom amount.
+4. CHOOSE BET TYPE:
+   Win (W)  — Horse must finish 1st. Highest payout.
+   Place (P) — Horse must finish top 2. Safer, lower payout.
+   Show (S) — Horse must finish top 3. Safest, lowest payout.
+5. WATCH THE RACE and collect your winnings!
 
-Pari-mutuel pools: All public bets go into separate pools (W/P/S). The track takeout is ~18%; the remaining net pool is split among winning bettors.
+ODDS & PAYOUTS:
+• Toggle Decimal (2.50x) or American (+150) odds format.
+• Odds are pari-mutuel: all bets go into pools, track takes ~18%, rest split among winners.
+• W/P/S each have separate pools with different payouts.
 
-Displayed odds:
-- Toggle between Decimal and American odds using the Odds button.
-- W/P/S all display odds derived from their respective pools (Place splits pool in half; Show splits in thirds). Actual payouts depend on final pools and finishers.`,
-      { fontSize: '14px', color: '#c8d1e6', wordWrap: { width: panelW - 32 } });
-    const closeBtn = this.makeButton(width / 2 - 60, py + panelH - 56, 120, 40, 'Close', () => this.hideGlossary());
+HORSE STATS:
+• Gate: Start reaction speed (A best).
+• Stamina: Energy over distance.
+• Burst: Late-race surge ability.
+• Consistency: Lower variance = more predictable.
+• Mud: Performance in rain/sloppy conditions.
+
+TIP: Match horse strengths to race conditions for the best edge!`,
+      { fontSize: '13px', color: '#c8d1e6', wordWrap: { width: panelW - 32 }, lineSpacing: 2 });
+    const closeBtn = this.makeButton(width / 2 - 60, py + panelH - 52, 120, 40, 'Close', () => this.hideGlossary());
     layer.add([scrim, g, title, body, closeBtn]);
+    layer.setDepth(100);
     this.ui.glossary = layer;
   }
 
   hideGlossary() {
-    try { this.ui.glossary?.destroy(true); } catch (_) {}
+    try { this.ui.glossary?.destroy(true); } catch (_) { }
     this.ui.glossary = null;
   }
 
