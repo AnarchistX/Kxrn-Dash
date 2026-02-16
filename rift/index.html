@@ -247,8 +247,8 @@
         // ─── State ───
         let state = 'menu';
         let score = 0, best = 0;
-        let player, pipes, orbs, particles, stars;
-        let gameSpeed, gravity, pulsePower, pipeTimer, pipeInterval;
+        let player = null, pipes = [], orbs = [], particles = [], stars = [];
+        let gameSpeed = 3, gravity = 0.45, pulsePower = -7.5, pipeTimer = 0, pipeInterval = 100;
         let frameCount = 0;
 
         // ─── Constants ───
@@ -273,7 +273,7 @@
         }
         function drawStars() {
             stars.forEach(s => {
-                s.x -= s.speed * (gameSpeed / 3);
+                s.x -= s.speed * ((gameSpeed || 3) / 3);
                 if (s.x < -5) { s.x = canvas.width + 5; s.y = Math.random() * canvas.height; }
                 ctx.globalAlpha = s.alpha;
                 ctx.fillStyle = '#00FFAA';
