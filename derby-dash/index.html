@@ -1,21 +1,180 @@
 <!doctype html>
 <html lang="en">
+
 <head>
   <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Derby Dash</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>Derby Dash — KXRNAGE</title>
+  <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="./styles.css" />
   <!-- Phaser 3 -->
   <script src="https://cdn.jsdelivr.net/npm/phaser@3.80.0/dist/phaser.min.js"></script>
+  <style>
+    #instructionOverlay {
+      position: fixed;
+      inset: 0;
+      z-index: 5000;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: rgba(13, 17, 23, 0.97);
+    }
+
+    #instructionOverlay .panel {
+      text-align: center;
+      max-width: 580px;
+      width: 92%;
+      padding: 32px 28px;
+      border: 2px solid #58a6ff;
+      box-shadow: 0 0 30px #58a6ff55;
+      background: rgba(15, 26, 44, 0.98);
+      border-radius: 12px;
+      overflow-y: auto;
+      max-height: 90vh;
+    }
+
+    #instructionOverlay h1 {
+      font-family: 'Orbitron', sans-serif;
+      font-size: clamp(28px, 5vw, 48px);
+      color: #58a6ff;
+      margin: 0 0 4px;
+      text-shadow: 0 0 14px #58a6ff;
+      letter-spacing: 3px;
+    }
+
+    #instructionOverlay h2 {
+      font-family: 'Orbitron', sans-serif;
+      font-size: clamp(12px, 2vw, 16px);
+      color: #ffd58a;
+      margin: 0 0 16px;
+      letter-spacing: 2px;
+    }
+
+    .info-section {
+      margin: 12px 0 4px;
+      color: #58a6ff;
+      font-family: 'Orbitron', sans-serif;
+      font-size: clamp(11px, 1.6vw, 13px);
+      text-transform: uppercase;
+      letter-spacing: 2px;
+      text-shadow: 0 0 6px #58a6ff;
+    }
+
+    .info-text {
+      color: #c8d1e6;
+      font-size: clamp(12px, 1.5vw, 14px);
+      line-height: 1.6;
+      margin: 2px 0 8px;
+    }
+
+    .info-text kbd {
+      background: rgba(88, 166, 255, 0.15);
+      color: #58a6ff;
+      padding: 2px 8px;
+      border-radius: 4px;
+      font-family: 'Orbitron', sans-serif;
+      font-size: 0.85em;
+    }
+
+    .legend-grid {
+      display: grid;
+      grid-template-columns: auto 1fr;
+      gap: 5px 14px;
+      text-align: left;
+      margin: 4px auto 10px;
+      max-width: 420px;
+    }
+
+    .legend-grid dt {
+      color: #ffd58a;
+      font-size: clamp(12px, 1.5vw, 14px);
+      font-family: 'Orbitron', sans-serif;
+    }
+
+    .legend-grid dd {
+      color: #c8d1e6;
+      font-size: clamp(11px, 1.4vw, 13px);
+      margin: 0;
+    }
+
+    #instructionOverlay .play-btn {
+      font-family: 'Orbitron', sans-serif;
+      font-size: clamp(16px, 2.5vw, 22px);
+      padding: 14px 48px;
+      margin-top: 16px;
+      background: #58a6ff;
+      color: #0d1117;
+      border: none;
+      cursor: pointer;
+      box-shadow: 0 0 12px #58a6ff;
+      letter-spacing: 1px;
+      min-height: 48px;
+      border-radius: 6px;
+    }
+
+    #instructionOverlay .play-btn:hover {
+      background: #79b8ff;
+      box-shadow: 0 0 24px #79b8ff;
+    }
+  </style>
 </head>
+
 <body>
   <a id="homeBtn" href="/" title="Home">←</a>
+
+  <!-- Instruction Overlay -->
+  <div id="instructionOverlay">
+    <div class="panel">
+      <h1>DERBY DASH</h1>
+      <h2>BET · RACE · WIN</h2>
+
+      <p class="info-section">How It Works</p>
+      <p class="info-text">
+        Pick a race → Study the horses → Place your bet → Watch them run!
+      </p>
+
+      <p class="info-section">Bet Types</p>
+      <dl class="legend-grid">
+        <dt>Win (W)</dt>
+        <dd>Horse must finish 1st — highest payout</dd>
+        <dt>Place (P)</dt>
+        <dd>Horse must finish top 2 — safer bet</dd>
+        <dt>Show (S)</dt>
+        <dd>Horse must finish top 3 — safest bet</dd>
+      </dl>
+
+      <p class="info-section">Horse Stats</p>
+      <dl class="legend-grid">
+        <dt>Gate</dt>
+        <dd>Start reaction speed</dd>
+        <dt>Stamina</dt>
+        <dd>Energy over distance</dd>
+        <dt>Burst</dt>
+        <dd>Late-race surge ability</dd>
+        <dt>Consistency</dt>
+        <dd>How predictable the horse is</dd>
+        <dt>Mud</dt>
+        <dd>Performance in rain/sloppy tracks</dd>
+      </dl>
+
+      <p class="info-text" style="color:#ffd58a;">
+        💡 Match horse strengths to race conditions for the best edge!
+      </p>
+
+      <button class="play-btn" onclick="launchGame()">PLAY</button>
+    </div>
+  </div>
+
   <div id="game"></div>
   <noscript>Please enable JavaScript to play.</noscript>
-  <script type="module">
-    // Cache-bust to ensure latest modules load after edits
-    const v = Date.now();
-    import(`./src/main.js?v=${v}`).catch(e => console.error('Failed to load main.js', e));
+  <script>
+    function launchGame() {
+      document.getElementById('instructionOverlay').style.display = 'none';
+      // Load the Phaser game
+      const v = Date.now();
+      import(`./src/main.js?v=${v}`).catch(e => console.error('Failed to load main.js', e));
+    }
   </script>
 </body>
+
 </html>
