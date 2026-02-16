@@ -1,0 +1,609 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Pulse — KXRNAGE</title>
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@700&display=swap" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            background: #050510;
+            overflow: hidden;
+            font-family: 'Orbitron', sans-serif;
+            height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            touch-action: none;
+            -webkit-touch-callout: none;
+            -webkit-user-select: none;
+            user-select: none;
+        }
+
+        canvas {
+            display: block;
+        }
+
+        #homeBtn {
+            position: fixed;
+            top: 12px;
+            left: 12px;
+            width: 28px;
+            height: 28px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #00FFAA;
+            border: 1px solid #00FFAA;
+            background: rgba(5, 5, 16, 0.7);
+            text-decoration: none;
+            font-size: 14px;
+            line-height: 1;
+            border-radius: 4px;
+            box-shadow: 0 0 10px #00FFAA66;
+            z-index: 2000;
+        }
+
+        .overlay {
+            position: fixed;
+            inset: 0;
+            z-index: 1000;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: rgba(5, 5, 16, 0.95);
+        }
+
+        .overlay .panel {
+            text-align: center;
+            max-width: 480px;
+            width: 92%;
+            padding: 32px 24px;
+            border: 2px solid #00FFAA;
+            box-shadow: 0 0 30px #00FFAA44;
+            background: rgba(8, 15, 20, 0.98);
+            border-radius: 12px;
+            max-height: 90vh;
+            overflow-y: auto;
+        }
+
+        .overlay h1 {
+            font-size: clamp(32px, 6vw, 56px);
+            color: #00FFAA;
+            margin: 0 0 4px;
+            text-shadow: 0 0 18px #00FFAA;
+            letter-spacing: 4px;
+        }
+
+        .overlay h2 {
+            font-size: clamp(12px, 2vw, 16px);
+            color: #FF00FF;
+            margin: 0 0 16px;
+            letter-spacing: 2px;
+        }
+
+        .hidden {
+            display: none !important;
+        }
+
+        .btn {
+            font-size: clamp(16px, 2.5vw, 22px);
+            padding: 14px 48px;
+            margin: 8px;
+            background: #00FFAA;
+            color: #050510;
+            border: none;
+            cursor: pointer;
+            font-family: 'Orbitron', sans-serif;
+            box-shadow: 0 0 12px #00FFAA;
+            letter-spacing: 1px;
+            min-height: 48px;
+            min-width: 200px;
+            border-radius: 4px;
+            font-weight: 700;
+        }
+
+        .btn:hover {
+            background: #00CC88;
+            box-shadow: 0 0 24px #00CC88;
+        }
+
+        .info-section {
+            margin: 12px 0 4px;
+            color: #FF00FF;
+            font-size: clamp(11px, 1.6vw, 13px);
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            text-shadow: 0 0 6px #FF00FF;
+        }
+
+        .info-text {
+            color: #aaa;
+            font-size: clamp(12px, 1.5vw, 14px);
+            font-family: system-ui, sans-serif;
+            line-height: 1.6;
+            margin: 2px 0 10px;
+        }
+
+        .info-text kbd {
+            background: rgba(0, 255, 170, 0.15);
+            color: #00FFAA;
+            padding: 2px 8px;
+            border-radius: 4px;
+            font-family: 'Orbitron', sans-serif;
+            font-size: 0.85em;
+        }
+
+        .legend-grid {
+            display: grid;
+            grid-template-columns: auto 1fr;
+            gap: 5px 14px;
+            text-align: left;
+            margin: 4px auto 10px;
+            max-width: 360px;
+        }
+
+        .legend-grid dt {
+            font-size: clamp(11px, 1.5vw, 13px);
+        }
+
+        .legend-grid dd {
+            color: #aaa;
+            font-size: clamp(11px, 1.4vw, 12px);
+            font-family: system-ui, sans-serif;
+            margin: 0;
+        }
+
+        #hud {
+            position: fixed;
+            top: 14px;
+            left: 0;
+            right: 0;
+            display: flex;
+            justify-content: space-between;
+            padding: 0 56px;
+            pointer-events: none;
+            z-index: 100;
+        }
+
+        #hud span {
+            color: #00FFAA;
+            font-size: clamp(16px, 2.5vw, 22px);
+            text-shadow: 0 0 8px #00FFAA;
+        }
+    </style>
+</head>
+
+<body>
+    <a id="homeBtn" href="/" title="Home">←</a>
+    <canvas id="c"></canvas>
+
+    <div id="hud" class="hidden">
+        <span id="hudScore">0</span>
+        <span id="hudBest">Best: 0</span>
+    </div>
+
+    <!-- Menu -->
+    <div id="menuOverlay" class="overlay">
+        <div class="panel">
+            <h1>PULSE</h1>
+            <h2>TAP · FLY · SURVIVE</h2>
+
+            <p class="info-section">Objective</p>
+            <p class="info-text">Navigate through neon corridors. Don't hit the walls!</p>
+
+            <p class="info-section">Controls</p>
+            <p class="info-text">
+                <kbd>Space</kbd> / <kbd>Click</kbd> / <kbd>Tap</kbd> — Pulse upward<br>
+                Gravity pulls you down. Time your pulses!
+            </p>
+
+            <p class="info-section">Elements</p>
+            <dl class="legend-grid">
+                <dt style="color:#00FFAA;">▬ Gaps</dt>
+                <dd>Fly through to score points</dd>
+                <dt style="color:#FFD700;">● Energy Orb</dt>
+                <dd>+50 bonus points</dd>
+                <dt style="color:#FF00FF;">↯ Speed Up</dt>
+                <dd>Corridor speed increases over time</dd>
+            </dl>
+
+            <p class="info-text" style="color:#FFD700;">Gaps get tighter as you go. Stay calm, stay alive! 🔥</p>
+
+            <button class="btn" onclick="startGame()">PLAY</button>
+        </div>
+    </div>
+
+    <!-- Game Over -->
+    <div id="gameOverOverlay" class="overlay hidden">
+        <div class="panel">
+            <h1>GAME OVER</h1>
+            <p id="goScore" style="color:#00FFAA; font-size:28px; margin:12px 0;">0</p>
+            <p id="goBest" style="color:#FF00FF; font-size:16px; margin-bottom:16px;">Best: 0</p>
+            <button class="btn" onclick="startGame()">RETRY</button>
+            <button class="btn" onclick="showMenu()">MENU</button>
+        </div>
+    </div>
+
+    <script>
+        const canvas = document.getElementById('c');
+        const ctx = canvas.getContext('2d');
+
+        // ─── Resize ───
+        function resize() {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+        }
+        resize();
+        window.addEventListener('resize', resize);
+
+        // ─── State ───
+        let state = 'menu';
+        let score = 0, best = 0;
+        let player, pipes, orbs, particles, stars;
+        let gameSpeed, gravity, pulsePower, pipeTimer, pipeInterval;
+        let frameCount = 0;
+
+        // ─── Constants ───
+        const P_RADIUS = 14;
+        const PIPE_W = 60;
+        const GAP_MIN = 130;
+        const GAP_MAX = 200;
+        const ORB_R = 10;
+
+        // ─── Stars (background) ───
+        function initStars() {
+            stars = [];
+            for (let i = 0; i < 100; i++) {
+                stars.push({
+                    x: Math.random() * canvas.width,
+                    y: Math.random() * canvas.height,
+                    r: Math.random() * 1.5 + 0.3,
+                    speed: Math.random() * 0.8 + 0.2,
+                    alpha: Math.random() * 0.5 + 0.1
+                });
+            }
+        }
+        function drawStars() {
+            stars.forEach(s => {
+                s.x -= s.speed * (gameSpeed / 3);
+                if (s.x < -5) { s.x = canvas.width + 5; s.y = Math.random() * canvas.height; }
+                ctx.globalAlpha = s.alpha;
+                ctx.fillStyle = '#00FFAA';
+                ctx.beginPath(); ctx.arc(s.x, s.y, s.r, 0, Math.PI * 2); ctx.fill();
+            });
+            ctx.globalAlpha = 1;
+        }
+
+        // ─── Player ───
+        function makePlayer() {
+            return {
+                x: canvas.width * 0.25,
+                y: canvas.height / 2,
+                vy: 0,
+                trail: []
+            };
+        }
+
+        function drawPlayer() {
+            if (!player) return;
+            // Trail
+            for (let i = 0; i < player.trail.length; i++) {
+                const t = player.trail[i];
+                const a = i / player.trail.length;
+                ctx.globalAlpha = a * 0.5;
+                ctx.fillStyle = '#00FFAA';
+                ctx.beginPath();
+                ctx.arc(t.x, t.y, P_RADIUS * a * 0.7, 0, Math.PI * 2);
+                ctx.fill();
+            }
+            ctx.globalAlpha = 1;
+
+            // Glow
+            ctx.shadowColor = '#00FFAA';
+            ctx.shadowBlur = 20;
+
+            // Body — pulsing circle
+            const pulse = 1 + Math.sin(frameCount * 0.1) * 0.08;
+            ctx.fillStyle = '#00FFAA';
+            ctx.beginPath();
+            ctx.arc(player.x, player.y, P_RADIUS * pulse, 0, Math.PI * 2);
+            ctx.fill();
+
+            // Inner core
+            ctx.fillStyle = '#FFFFFF';
+            ctx.beginPath();
+            ctx.arc(player.x, player.y, P_RADIUS * 0.4, 0, Math.PI * 2);
+            ctx.fill();
+
+            ctx.shadowBlur = 0;
+        }
+
+        // ─── Pipes (corridors) ───
+        function spawnPipe() {
+            const minGap = Math.max(GAP_MIN, GAP_MAX - score * 0.5);
+            const gap = minGap + Math.random() * 40;
+            const margin = 60;
+            const gapY = margin + gap / 2 + Math.random() * (canvas.height - margin * 2 - gap);
+
+            const pipe = {
+                x: canvas.width + PIPE_W,
+                gapY: gapY,
+                gap: gap,
+                scored: false,
+                color: `hsl(${160 + Math.random() * 60}, 100%, 60%)`
+            };
+            pipes.push(pipe);
+
+            // Chance for orb in the gap
+            if (Math.random() < 0.4) {
+                orbs.push({
+                    x: pipe.x + PIPE_W / 2,
+                    y: gapY + (Math.random() - 0.5) * gap * 0.4,
+                    collected: false
+                });
+            }
+        }
+
+        function drawPipes() {
+            pipes.forEach(p => {
+                const topH = p.gapY - p.gap / 2;
+                const botY = p.gapY + p.gap / 2;
+
+                // Neon corridor walls
+                ctx.fillStyle = p.color;
+                ctx.shadowColor = p.color;
+                ctx.shadowBlur = 10;
+
+                // Top wall
+                ctx.fillRect(p.x, 0, PIPE_W, topH);
+                // Bottom wall
+                ctx.fillRect(p.x, botY, PIPE_W, canvas.height - botY);
+
+                // Edge glow lines
+                ctx.strokeStyle = '#fff';
+                ctx.lineWidth = 2;
+                ctx.globalAlpha = 0.5;
+                ctx.beginPath();
+                ctx.moveTo(p.x, topH); ctx.lineTo(p.x + PIPE_W, topH);
+                ctx.stroke();
+                ctx.beginPath();
+                ctx.moveTo(p.x, botY); ctx.lineTo(p.x + PIPE_W, botY);
+                ctx.stroke();
+                ctx.globalAlpha = 1;
+
+                ctx.shadowBlur = 0;
+            });
+        }
+
+        // ─── Orbs ───
+        function drawOrbs() {
+            orbs.forEach(o => {
+                if (o.collected) return;
+                ctx.fillStyle = '#FFD700';
+                ctx.shadowColor = '#FFD700';
+                ctx.shadowBlur = 12;
+                const pulse = 1 + Math.sin(frameCount * 0.08 + o.x) * 0.15;
+                ctx.beginPath();
+                ctx.arc(o.x, o.y, ORB_R * pulse, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.shadowBlur = 0;
+            });
+        }
+
+        // ─── Particles ───
+        function spawnParticles(x, y, color, count = 8) {
+            for (let i = 0; i < count; i++) {
+                particles.push({
+                    x, y,
+                    vx: (Math.random() - 0.5) * 6,
+                    vy: (Math.random() - 0.5) * 6,
+                    r: Math.random() * 3 + 1,
+                    color, life: 1
+                });
+            }
+        }
+        function updateParticles() {
+            for (let i = particles.length - 1; i >= 0; i--) {
+                const p = particles[i];
+                p.x += p.vx; p.y += p.vy;
+                p.life -= 0.03;
+                if (p.life <= 0) particles.splice(i, 1);
+            }
+        }
+        function drawParticles() {
+            particles.forEach(p => {
+                ctx.globalAlpha = p.life;
+                ctx.fillStyle = p.color;
+                ctx.beginPath(); ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2); ctx.fill();
+            });
+            ctx.globalAlpha = 1;
+        }
+
+        // ─── Ground & ceiling indicators ───
+        function drawBounds() {
+            const grad = ctx.createLinearGradient(0, 0, 0, 8);
+            grad.addColorStop(0, '#FF005544');
+            grad.addColorStop(1, 'transparent');
+            ctx.fillStyle = grad;
+            ctx.fillRect(0, 0, canvas.width, 8);
+
+            const grad2 = ctx.createLinearGradient(0, canvas.height - 8, 0, canvas.height);
+            grad2.addColorStop(0, 'transparent');
+            grad2.addColorStop(1, '#FF005544');
+            ctx.fillStyle = grad2;
+            ctx.fillRect(0, canvas.height - 8, canvas.width, 8);
+        }
+
+        // ─── HUD ───
+        function updateHUD() {
+            document.getElementById('hudScore').textContent = score;
+            document.getElementById('hudBest').textContent = `Best: ${best}`;
+        }
+
+        // ─── Overlays ───
+        function hideOverlays() {
+            document.getElementById('menuOverlay').classList.add('hidden');
+            document.getElementById('gameOverOverlay').classList.add('hidden');
+        }
+        function showMenu() {
+            state = 'menu';
+            document.getElementById('hud').classList.add('hidden');
+            document.getElementById('gameOverOverlay').classList.add('hidden');
+            document.getElementById('menuOverlay').classList.remove('hidden');
+        }
+
+        // ─── Game Flow ───
+        function startGame() {
+            hideOverlays();
+            document.getElementById('hud').classList.remove('hidden');
+
+            score = 0;
+            gameSpeed = 3;
+            gravity = 0.45;
+            pulsePower = -7.5;
+            pipeTimer = 0;
+            pipeInterval = 100;
+            frameCount = 0;
+
+            player = makePlayer();
+            pipes = [];
+            orbs = [];
+            particles = [];
+
+            state = 'playing';
+        }
+
+        function gameOver() {
+            state = 'gameover';
+            if (score > best) best = score;
+            spawnParticles(player.x, player.y, '#FF0055', 20);
+            document.getElementById('goScore').textContent = score;
+            document.getElementById('goBest').textContent = `Best: ${best}`;
+            document.getElementById('gameOverOverlay').classList.remove('hidden');
+        }
+
+        // ─── Input ───
+        function pulse() {
+            if (state === 'playing' && player) {
+                player.vy = pulsePower;
+                spawnParticles(player.x, player.y + P_RADIUS, '#00FFAA', 4);
+            }
+        }
+
+        window.addEventListener('keydown', e => {
+            if (e.code === 'Space') { e.preventDefault(); pulse(); }
+        });
+        canvas.addEventListener('mousedown', e => { e.preventDefault(); pulse(); });
+        canvas.addEventListener('touchstart', e => { e.preventDefault(); pulse(); }, { passive: false });
+
+        // ─── Main Loop ───
+        function loop() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            // Background gradient
+            const bg = ctx.createLinearGradient(0, 0, 0, canvas.height);
+            bg.addColorStop(0, '#050510');
+            bg.addColorStop(0.5, '#0a0a28');
+            bg.addColorStop(1, '#050515');
+            ctx.fillStyle = bg;
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            drawStars();
+
+            if (state === 'playing') {
+                frameCount++;
+
+                // Increase speed over time
+                gameSpeed = 3 + score * 0.05;
+                if (gameSpeed > 8) gameSpeed = 8;
+
+                // Player physics
+                player.vy += gravity;
+                player.y += player.vy;
+
+                // Trail
+                player.trail.push({ x: player.x, y: player.y });
+                if (player.trail.length > 18) player.trail.shift();
+
+                // Hit ceiling/floor
+                if (player.y - P_RADIUS < 0 || player.y + P_RADIUS > canvas.height) {
+                    gameOver();
+                }
+
+                // Spawn pipes
+                pipeTimer++;
+                pipeInterval = Math.max(55, 100 - score * 0.3);
+                if (pipeTimer >= pipeInterval) {
+                    spawnPipe();
+                    pipeTimer = 0;
+                }
+
+                // Update pipes
+                for (let i = pipes.length - 1; i >= 0; i--) {
+                    const p = pipes[i];
+                    p.x -= gameSpeed;
+
+                    // Score
+                    if (!p.scored && p.x + PIPE_W < player.x) {
+                        p.scored = true;
+                        score++;
+                    }
+
+                    // Collision
+                    if (player.x + P_RADIUS > p.x && player.x - P_RADIUS < p.x + PIPE_W) {
+                        const topH = p.gapY - p.gap / 2;
+                        const botY = p.gapY + p.gap / 2;
+                        if (player.y - P_RADIUS < topH || player.y + P_RADIUS > botY) {
+                            gameOver();
+                        }
+                    }
+
+                    if (p.x + PIPE_W < -10) pipes.splice(i, 1);
+                }
+
+                // Update orbs
+                for (let i = orbs.length - 1; i >= 0; i--) {
+                    const o = orbs[i];
+                    o.x -= gameSpeed;
+                    if (!o.collected) {
+                        const dx = player.x - o.x, dy = player.y - o.y;
+                        if (Math.sqrt(dx * dx + dy * dy) < P_RADIUS + ORB_R) {
+                            o.collected = true;
+                            score += 5;
+                            spawnParticles(o.x, o.y, '#FFD700', 8);
+                        }
+                    }
+                    if (o.x < -20) orbs.splice(i, 1);
+                }
+
+                updateParticles();
+                updateHUD();
+            }
+
+            // Draw everything
+            drawPipes();
+            drawOrbs();
+            drawBounds();
+            if (state === 'playing' || state === 'gameover') {
+                drawPlayer();
+            }
+            drawParticles();
+
+            requestAnimationFrame(loop);
+        }
+
+        // ─── Init ───
+        initStars();
+        requestAnimationFrame(loop);
+    </script>
+</body>
+
+</html>
