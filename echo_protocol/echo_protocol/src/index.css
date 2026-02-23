@@ -1,0 +1,401 @@
+:root {
+  /* Core Colors */
+  --bg-color: #050a0e;
+  --theme-color: #39ff14;
+  /* Default Phosphor Green */
+  --theme-color-dim: rgba(57, 255, 20, 0.4);
+  --theme-color-glow: rgba(57, 255, 20, 0.8);
+
+  /* Warning Colors */
+  --warning-color: #ff3333;
+  --warning-dim: rgba(255, 51, 51, 0.4);
+
+  /* UI Elements */
+  --panel-bg: rgba(5, 10, 14, 0.85);
+  --panel-bg-solid: #050a0e;
+  --border-style: 2px solid var(--theme-color);
+  --border-style-dim: 1px solid var(--theme-color-dim);
+
+  /* Typography */
+  --font-mono: 'Courier New', Courier, monospace;
+}
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+body,
+html,
+#root {
+  width: 100vw;
+  height: 100vh;
+  overflow: hidden;
+  background-color: var(--bg-color);
+  color: var(--theme-color);
+  font-family: var(--font-mono);
+  font-size: 16px;
+  line-height: 1.5;
+  user-select: none;
+}
+
+/* Scrollbar Styling */
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--bg-color);
+  border-left: var(--border-style-dim);
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--theme-color-dim);
+  border: 1px solid var(--theme-color);
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--theme-color);
+}
+
+::-webkit-scrollbar-corner {
+  background: var(--bg-color);
+}
+
+/* =========================================
+   CRT EFFECTS
+   ========================================= */
+
+.crt-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  pointer-events: none;
+  z-index: 9999;
+}
+
+.crt-overlay::before {
+  content: " ";
+  display: block;
+  position: absolute;
+  top: 0;
+  left: 0;
+  bottom: 0;
+  right: 0;
+  background: linear-gradient(to bottom, rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.25) 50%);
+  background-size: 100% 4px;
+  z-index: 2;
+  pointer-events: none;
+}
+
+@keyframes crtFlicker {
+  0% {
+    opacity: 0.95;
+  }
+
+  5% {
+    opacity: 0.85;
+  }
+
+  10% {
+    opacity: 0.95;
+  }
+
+  15% {
+    opacity: 1;
+  }
+
+  50% {
+    opacity: 0.95;
+  }
+
+  55% {
+    opacity: 0.9;
+  }
+
+  60% {
+    opacity: 1;
+  }
+
+  100% {
+    opacity: 0.95;
+  }
+}
+
+.crt-overlay::after {
+  content: " ";
+  display: block;
+  position: absolute;
+  top: 0;
+  left: 0;
+  bottom: 0;
+  right: 0;
+  background: radial-gradient(circle, rgba(0, 0, 0, 0) 60%, rgba(0, 0, 0, 0.6) 100%);
+  animation: crtFlicker 0.15s infinite;
+  z-index: 3;
+  pointer-events: none;
+}
+
+.glitch {
+  animation: glitch-anim 0.2s linear infinite alternate-reverse;
+}
+
+@keyframes glitch-anim {
+  0% {
+    transform: translate(0);
+  }
+
+  20% {
+    transform: translate(-2px, 2px);
+    text-shadow: 2px 0 var(--warning-color);
+  }
+
+  40% {
+    transform: translate(-2px, -2px);
+  }
+
+  60% {
+    transform: translate(2px, 2px);
+    text-shadow: -2px 0 var(--theme-color);
+  }
+
+  80% {
+    transform: translate(2px, -2px);
+  }
+
+  100% {
+    transform: translate(0);
+  }
+}
+
+.glow-text {
+  text-shadow: 0 0 5px var(--theme-color-glow);
+}
+
+.warning-text {
+  color: var(--warning-color);
+  text-shadow: 0 0 5px var(--warning-dim);
+}
+
+/* =========================================
+   DESKTOP
+   ========================================= */
+
+.desktop-container {
+  width: 100vw;
+  height: 100vh;
+  position: relative;
+  background-image:
+    linear-gradient(var(--theme-color-dim) 1px, transparent 1px),
+    linear-gradient(90deg, var(--theme-color-dim) 1px, transparent 1px);
+  background-size: 50px 50px;
+  background-position: center center;
+  opacity: 0.8;
+  overflow: hidden;
+}
+
+.desktop-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  padding: 20px;
+  width: 100px;
+  height: calc(100% - 40px);
+}
+
+.desktop-icon {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  width: 80px;
+  height: 80px;
+  text-align: center;
+  cursor: pointer;
+  border: 1px solid transparent;
+  transition: all 0.2s;
+}
+
+.desktop-icon:hover {
+  background: var(--theme-color-dim);
+  border: var(--border-style-dim);
+}
+
+.desktop-icon span {
+  margin-top: 5px;
+  font-size: 12px;
+  font-weight: bold;
+  background: var(--bg-color);
+  padding: 2px 4px;
+}
+
+/* =========================================
+   TASKBAR
+   ========================================= */
+
+.taskbar {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  width: 100%;
+  height: 40px;
+  background: var(--panel-bg-solid);
+  border-top: var(--border-style);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 10px;
+  z-index: 9000;
+}
+
+.taskbar-start {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-weight: bold;
+  border-right: var(--border-style-dim);
+  padding-right: 15px;
+}
+
+.taskbar-apps {
+  flex: 1;
+  display: flex;
+  gap: 5px;
+  padding: 0 15px;
+  overflow-x: auto;
+}
+
+.taskbar-btn {
+  background: transparent;
+  color: var(--theme-color);
+  border: var(--border-style-dim);
+  padding: 0 15px;
+  height: 28px;
+  font-family: inherit;
+  font-size: 14px;
+  cursor: pointer;
+  transition: all 0.2s;
+  white-space: nowrap;
+}
+
+.taskbar-btn:hover {
+  background: var(--theme-color-dim);
+}
+
+.taskbar-btn.active {
+  background: var(--theme-color);
+  color: var(--bg-color);
+  font-weight: bold;
+}
+
+.taskbar-system {
+  display: flex;
+  align-items: center;
+  gap: 15px;
+  border-left: var(--border-style-dim);
+  padding-left: 15px;
+}
+
+.trace-meter {
+  font-weight: bold;
+  display: flex;
+  align-items: center;
+}
+
+.clock {
+  font-weight: bold;
+  letter-spacing: 1px;
+}
+
+/* =========================================
+   WINDOW
+   ========================================= */
+
+.os-window {
+  position: absolute;
+  background: var(--panel-bg-solid);
+  border: var(--border-style);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  box-shadow: 0 0 20px rgba(0, 0, 0, 0.8), inset 0 0 10px var(--theme-color-dim);
+}
+
+.os-window.active {
+  border-color: var(--theme-color);
+  z-index: 100;
+  box-shadow: 0 0 30px var(--theme-color-dim), inset 0 0 10px var(--theme-color-dim);
+}
+
+.os-window.inactive {
+  border-color: var(--theme-color-dim);
+  opacity: 0.9;
+}
+
+.os-window.inactive .window-header {
+  background: var(--theme-color-dim);
+}
+
+.window-header {
+  height: 30px;
+  background: var(--theme-color);
+  color: var(--bg-color);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0 10px;
+  font-weight: bold;
+  cursor: grab;
+  user-select: none;
+}
+
+.window-header:active {
+  cursor: grabbing;
+}
+
+.window-title {
+  font-size: 14px;
+  letter-spacing: 1px;
+}
+
+.window-controls {
+  display: flex;
+  gap: 5px;
+}
+
+.control-btn {
+  background: var(--bg-color);
+  color: var(--theme-color);
+  border: none;
+  width: 20px;
+  height: 20px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.control-btn:hover {
+  filter: invert(1);
+}
+
+.close-btn:hover {
+  background: var(--warning-color);
+  color: var(--bg-color);
+  filter: none;
+}
+
+.window-content {
+  flex: 1;
+  overflow: auto;
+  padding: 10px;
+  position: relative;
+}
+
+@tailwind components;
+@tailwind utilities;
