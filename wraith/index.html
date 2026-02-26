@@ -266,11 +266,21 @@
     const ctx = canvas.getContext('2d');
     const bloomCanvas = document.getElementById('bloomCanvas');
     const bloomCtx = bloomCanvas.getContext('2d');
-    let W, H, SC; // SC = pixel scale ratio
+    // Background cache canvas
+    const bgCache = document.createElement('canvas');
+    const bgCtx = bgCache.getContext('2d');
+    let bgDirty = true;
+    let W, H, SC;
+    let frameCount = 0; // global frame counter
+    const BLOOM_SCALE = 0.25; // render bloom at 1/4 res
 
     function resize() {
-      W = canvas.width = bloomCanvas.width = window.innerWidth;
-      H = canvas.height = bloomCanvas.height = window.innerHeight;
+      W = canvas.width = window.innerWidth;
+      H = canvas.height = window.innerHeight;
+      bloomCanvas.width = Math.floor(W * BLOOM_SCALE);
+      bloomCanvas.height = Math.floor(H * BLOOM_SCALE);
+      bgCache.width = W; bgCache.height = H;
+      bgDirty = true;
       SC = Math.min(W / 600, H / 800, 2);
     }
     resize();
@@ -315,21 +325,22 @@
       }));
     }
 
-    function drawBG() {
-      const grad = ctx.createRadialGradient(W / 2, H * .35, 0, W / 2, H * .65, Math.max(W, H));
+    function renderBGToCache() {
+      const c = bgCtx;
+      const grad = c.createRadialGradient(W / 2, H * .35, 0, W / 2, H * .65, Math.max(W, H));
       grad.addColorStop(0, '#0e0828');
       grad.addColorStop(0.5, '#060318');
       grad.addColorStop(1, '#010108');
-      ctx.fillStyle = grad;
-      ctx.fillRect(0, 0, W, H);
+      c.fillStyle = grad;
+      c.fillRect(0, 0, W, H);
 
       nebulaBlobs.forEach(n => {
-        const g = ctx.createRadialGradient(n.nx * W, n.ny * H, 0, n.nx * W, n.ny * H, n.r * 1.4);
+        const g = c.createRadialGradient(n.nx * W, n.ny * H, 0, n.nx * W, n.ny * H, n.r * 1.4);
         g.addColorStop(0, `hsla(${n.hue},100%,55%,${n.a * 1.5})`);
         g.addColorStop(0.5, `hsla(${n.hue},80%,40%,${n.a * 0.5})`);
         g.addColorStop(1, 'transparent');
-        ctx.fillStyle = g;
-        ctx.fillRect(0, 0, W, H);
+        c.fillStyle = g;
+        c.fillRect(0, 0, W, H);
       });
 
       stars.forEach(s => {
@@ -338,28 +349,36 @@
         if (s.ny > 1) { s.ny = 0; s.nx = Math.random(); }
         const sx = s.nx * W, sy = s.ny * H;
         const sr = s.r * SC * (s.lyr + 1) * 0.5;
-        ctx.globalAlpha = s.a;
-        ctx.fillStyle = `hsl(${s.hue},80%,94%)`;
-        ctx.shadowColor = `hsl(${s.hue},80%,80%)`;
-        ctx.shadowBlur = sr * 4;
-        ctx.beginPath(); ctx.arc(sx, sy, sr, 0, TAU); ctx.fill();
+        c.globalAlpha = s.a;
+        c.fillStyle = `hsl(${s.hue},80%,94%)`;
+        c.beginPath(); c.arc(sx, sy, sr, 0, TAU); c.fill();
         if (s.r > 1.2) {
-          ctx.strokeStyle = `hsla(${s.hue},80%,94%,.3)`;
-          ctx.lineWidth = .5;
-          ctx.beginPath();
-          ctx.moveTo(sx - sr * 3, sy); ctx.lineTo(sx + sr * 3, sy);
-          ctx.moveTo(sx, sy - sr * 3); ctx.lineTo(sx, sy + sr * 3);
-          ctx.stroke();
+          c.globalAlpha = s.a * 0.6;
+          c.fillStyle = `hsl(${s.hue},80%,94%)`;
+          c.beginPath(); c.arc(sx, sy, sr * 2.5, 0, TAU); c.fill();
+          c.globalAlpha = s.a;
+          c.strokeStyle = `hsla(${s.hue},80%,94%,.3)`;
+          c.lineWidth = .5;
+          c.beginPath();
+          c.moveTo(sx - sr * 3, sy); c.lineTo(sx + sr * 3, sy);
+          c.moveTo(sx, sy - sr * 3); c.lineTo(sx, sy + sr * 3);
+          c.stroke();
         }
       });
-      ctx.globalAlpha = 1; ctx.shadowBlur = 0;
+      c.globalAlpha = 1;
 
       // Vignette
-      const vg = ctx.createRadialGradient(W / 2, H / 2, Math.min(W, H) * 0.3, W / 2, H / 2, Math.max(W, H) * 0.75);
+      const vg = c.createRadialGradient(W / 2, H / 2, Math.min(W, H) * 0.3, W / 2, H / 2, Math.max(W, H) * 0.75);
       vg.addColorStop(0, 'transparent');
       vg.addColorStop(1, 'rgba(0,0,0,0.55)');
-      ctx.fillStyle = vg;
-      ctx.fillRect(0, 0, W, H);
+      c.fillStyle = vg;
+      c.fillRect(0, 0, W, H);
+      bgDirty = false;
+    }
+
+    function drawBG() {
+      if (bgDirty || frameCount % 60 === 0) renderBGToCache();
+      ctx.drawImage(bgCache, 0, 0);
     }
 
     // ============================================================
@@ -367,8 +386,11 @@
     // ============================================================
     let particles = [];
 
+    const MAX_PARTICLES = 200;
+
     function spawnParts(x, y, colors, n, opts = {}) {
       for (let i = 0; i < n; i++) {
+        if (particles.length >= MAX_PARTICLES) break;
         const a = Math.random() * TAU;
         const spd = (opts.mn || 0.5) + Math.random() * (opts.mx || 5);
         const col = Array.isArray(colors) ? colors[Math.floor(Math.random() * colors.length)] : colors;
@@ -385,11 +407,13 @@
     }
 
     function spawnRing(x, y, color, maxR) {
+      if (particles.length >= MAX_PARTICLES) return;
       particles.push({ type: 'ring', x, y, r: 4, maxR: maxR * SC, color, life: 1 });
     }
 
     function updateParts() {
-      for (let i = particles.length - 1; i >= 0; i--) {
+      let i = particles.length;
+      while (i--) {
         const p = particles[i];
         if (p.type === 'ring') {
           p.r += (p.maxR - p.r) * .11;
@@ -399,25 +423,33 @@
           p.vx *= .93; p.vy *= .93;
           p.life -= p.decay;
         }
-        if (p.life <= 0) particles.splice(i, 1);
+        if (p.life <= 0) {
+          particles[i] = particles[particles.length - 1];
+          particles.pop();
+        }
       }
     }
 
     function drawParts() {
-      particles.forEach(p => {
-        ctx.globalAlpha = Math.max(0, p.life);
+      for (let i = 0; i < particles.length; i++) {
+        const p = particles[i];
+        const a = Math.max(0, p.life);
+        ctx.globalAlpha = a;
         if (p.type === 'ring') {
-          ctx.strokeStyle = p.color; ctx.lineWidth = 1.5 * SC;
-          ctx.shadowColor = p.color; ctx.shadowBlur = 10;
+          ctx.strokeStyle = p.color; ctx.lineWidth = 2.5 * SC;
           ctx.beginPath(); ctx.arc(p.x, p.y, p.r, 0, TAU); ctx.stroke();
         } else {
-          if (p.glow) { ctx.shadowColor = p.color; ctx.shadowBlur = 10; }
+          if (p.glow) {
+            ctx.globalAlpha = a * 0.3;
+            ctx.fillStyle = p.color;
+            ctx.beginPath(); ctx.arc(p.x, p.y, p.r * SC * 2.5, 0, TAU); ctx.fill();
+            ctx.globalAlpha = a;
+          }
           ctx.fillStyle = p.color;
           ctx.beginPath(); ctx.arc(p.x, p.y, p.r * SC, 0, TAU); ctx.fill();
-          if (p.glow) ctx.shadowBlur = 0;
         }
-      });
-      ctx.globalAlpha = 1; ctx.shadowBlur = 0;
+      }
+      ctx.globalAlpha = 1;
     }
 
     // ============================================================
@@ -428,8 +460,7 @@
       if (!mouseOnCanvas) return;
       const R = 9 * SC, gap = 4 * SC;
       ctx.strokeStyle = 'rgba(255,0,255,.85)';
-      ctx.lineWidth = 1.2 * SC;
-      ctx.shadowColor = '#FF00FF'; ctx.shadowBlur = 6;
+      ctx.lineWidth = 1.5 * SC;
       ctx.beginPath();
       ctx.moveTo(mouseX - R - gap, mouseY); ctx.lineTo(mouseX - gap, mouseY);
       ctx.moveTo(mouseX + gap, mouseY); ctx.lineTo(mouseX + R + gap, mouseY);
@@ -439,7 +470,6 @@
       ctx.strokeStyle = 'rgba(255,0,255,.4)';
       ctx.lineWidth = .8 * SC;
       ctx.beginPath(); ctx.arc(mouseX, mouseY, R, 0, TAU); ctx.stroke();
-      ctx.shadowBlur = 0;
     }
 
     // ============================================================
@@ -558,11 +588,10 @@
         ctx.globalAlpha = t.life * 0.35;
         ctx.translate(t.x, t.y);
         ctx.rotate(t.ang);
-        ctx.shadowColor = '#00FFFF'; ctx.shadowBlur = 8;
         shipShape(0, 0, 14 * SC, '#00CCFF', false);
         ctx.restore();
       });
-      ctx.globalAlpha = 1; ctx.shadowBlur = 0;
+      ctx.globalAlpha = 1;
 
       if (p.invincible > 0 && Math.floor(p.invincible / 4) % 2 === 0) return;
 
@@ -601,15 +630,13 @@
       if (p.shield > 0) {
         const pct = p.shield / p.maxShield;
         ctx.strokeStyle = `rgba(0,180,255,${0.25 + pct * .5})`;
-        ctx.lineWidth = 1.5 * SC;
-        ctx.shadowColor = '#00BBFF'; ctx.shadowBlur = 12;
+        ctx.lineWidth = 2.5 * SC;
         ctx.beginPath(); ctx.arc(x, y, R * 1.65, 0, TAU * pct); ctx.stroke();
-        ctx.shadowBlur = 0;
       }
     }
 
     function shipShape(x, y, R, col, detail) {
-      ctx.fillStyle = col; ctx.shadowColor = col; ctx.shadowBlur = 18;
+      ctx.fillStyle = col;
       ctx.beginPath();
       ctx.moveTo(x + R, y);
       ctx.lineTo(x - R * .45, y - R * .48);
@@ -618,7 +645,6 @@
       ctx.closePath(); ctx.fill();
       if (detail) {
         ctx.fillStyle = 'rgba(255,150,255,0.7)';
-        ctx.shadowBlur = 0;
         ctx.beginPath();
         ctx.moveTo(x + R * .55, y);
         ctx.lineTo(x - R * .15, y - R * .27);
@@ -629,7 +655,6 @@
         ctx.fillStyle = '#FFFFFF';
         ctx.beginPath(); ctx.arc(x + R * .42, y, R * .11, 0, TAU); ctx.fill();
       }
-      ctx.shadowBlur = 0;
     }
 
     function playerShoot(p) {
@@ -883,7 +908,7 @@
       const { x, y, r, color, ang, type, mini } = e;
       const col = e.flash > 0 ? '#FFFFFF' : color;
       ctx.save(); ctx.translate(x, y); ctx.rotate(ang);
-      ctx.fillStyle = col; ctx.shadowColor = color; ctx.shadowBlur = 10; ctx.globalAlpha = .92;
+      ctx.fillStyle = col; ctx.globalAlpha = .92;
 
       if (type === 'drone') {
         ctx.beginPath();
@@ -933,7 +958,7 @@
           ctx.stroke();
         }
       }
-      ctx.shadowBlur = 0; ctx.globalAlpha = 1; ctx.restore();
+      ctx.globalAlpha = 1; ctx.restore();
 
       // HP bar (multi-hp enemies)
       if (e.maxHp > 1 && !mini) {
@@ -957,7 +982,7 @@
       ctx.rotate(-b.ang * 1.5);
       ctx.rotate(b.ang);
 
-      ctx.fillStyle = col; ctx.shadowColor = b.color; ctx.shadowBlur = 28;
+      ctx.fillStyle = col;
       // 6-pointed star body
       for (let i = 0; i < 6; i++) {
         const a = (TAU / 6) * i, a2 = a + Math.PI / 6;
@@ -968,10 +993,13 @@
         ctx.closePath(); ctx.fill();
       }
       // Core
-      ctx.fillStyle = '#FFFFFF'; ctx.shadowColor = '#FFFFFF'; ctx.shadowBlur = 30;
+      ctx.fillStyle = '#FFFFFF';
       ctx.beginPath(); ctx.arc(0, 0, r * .28, 0, TAU); ctx.fill();
+      // Glow halo around core (replaces shadowBlur)
+      ctx.globalAlpha = 0.35;
+      ctx.beginPath(); ctx.arc(0, 0, r * .55, 0, TAU); ctx.fill();
+      ctx.globalAlpha = 1;
       ctx.restore();
-      ctx.shadowBlur = 0;
 
       // Boss HP bar
       const bw = W * .62, bh = 7 * SC;
@@ -981,9 +1009,8 @@
       const pct = boss.hp / boss.maxHp;
       const bg = ctx.createLinearGradient(bx, 0, bx + bw, 0);
       bg.addColorStop(0, '#FF0055'); bg.addColorStop(1, boss.phase === 2 ? '#FF00FF' : '#FF6600');
-      ctx.fillStyle = bg; ctx.shadowColor = '#FF0055'; ctx.shadowBlur = 8;
+      ctx.fillStyle = bg;
       ctx.fillRect(bx, by, bw * pct, bh);
-      ctx.shadowBlur = 0;
       ctx.font = `${7 * SC}px Orbitron`; ctx.textAlign = 'center'; ctx.fillStyle = '#FF0055';
       ctx.fillText('BOSS  PHASE ' + boss.phase, W / 2, by - 4 * SC);
 
@@ -1050,7 +1077,6 @@
     function drawBullets() {
       // Player bullets
       pBullets.forEach(b => {
-        ctx.shadowColor = b.color; ctx.shadowBlur = 14;
         ctx.fillStyle = b.color;
         // elongated trail
         ctx.globalAlpha = .3;
@@ -1064,13 +1090,12 @@
       });
       // Enemy bullets
       eBullets.forEach(b => {
-        ctx.shadowColor = b.color; ctx.shadowBlur = 8;
         ctx.fillStyle = b.color;
         ctx.globalAlpha = .85;
         ctx.beginPath(); ctx.arc(b.x, b.y, b.r * SC, 0, TAU); ctx.fill();
         ctx.globalAlpha = 1;
       });
-      ctx.shadowBlur = 0; ctx.globalAlpha = 1;
+      ctx.globalAlpha = 1;
     }
 
     // ============================================================
@@ -1198,18 +1223,18 @@
     }
     function drawPowerups() {
       powerups.forEach(p => {
-        const pulse = 1 + Math.sin(Date.now() * .005) * .15;
+        const pulse = 1 + Math.sin(frameCount * 0.08) * .15;
         const alpha = p.life < 60 ? p.life / 60 : 1;
         ctx.save(); ctx.translate(p.x, p.y); ctx.rotate(p.ang);
         ctx.globalAlpha = alpha;
-        ctx.shadowColor = p.col; ctx.shadowBlur = 18;
         ctx.strokeStyle = p.col; ctx.lineWidth = 1.4 * SC;
         const R = p.r * SC * pulse;
         ctx.beginPath(); ctx.moveTo(0, -R); ctx.lineTo(R * .65, 0); ctx.lineTo(0, R); ctx.lineTo(-R * .65, 0); ctx.closePath();
         ctx.stroke();
         ctx.globalAlpha = alpha * .25; ctx.fillStyle = p.col; ctx.fill();
         ctx.globalAlpha = alpha;
-        ctx.shadowBlur = 0; ctx.fillStyle = '#fff';
+        ctx.globalAlpha = alpha;
+        ctx.fillStyle = '#fff';
         ctx.font = `${9 * SC}px sans-serif`;
         ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
         ctx.fillText(p.lbl, 0, 0);
@@ -1230,18 +1255,17 @@
       // Score + combo
       ctx.font = `bold ${11 * SC}px Orbitron`;
       ctx.textAlign = 'left'; ctx.fillStyle = '#FF00FF';
-      ctx.shadowColor = '#FF00FF'; ctx.shadowBlur = 8;
       ctx.fillText(`${score}`, pad, top);
       if (combo > 1) {
         ctx.font = `bold ${9 * SC}px Orbitron`;
-        ctx.fillStyle = '#FFD700'; ctx.shadowColor = '#FFD700';
+        ctx.fillStyle = '#FFD700';
         ctx.fillText(`×${combo}`, pad, top + 12 * SC);
       }
 
       // Wave / Boss
       ctx.font = `bold ${10 * SC}px Orbitron`;
       ctx.textAlign = 'center';
-      ctx.fillStyle = '#00FFFF'; ctx.shadowColor = '#00FFFF'; ctx.shadowBlur = 8;
+      ctx.fillStyle = '#00FFFF';
       ctx.fillText(boss ? `BOSS  PHASE ${boss.phase}` : `WAVE ${wave}`, W / 2, top);
       // Enemy count if no boss
       if (!boss && enemies.length > 0) {
@@ -1260,19 +1284,18 @@
       // HP
       ctx.fillStyle = '#1a1a2a'; ctx.fillRect(rx, top - bh, bw, bh);
       const hpCol = p.hp > 60 ? '#00FF88' : p.hp > 30 ? '#FFD700' : '#FF0055';
-      ctx.fillStyle = hpCol; ctx.shadowColor = hpCol; ctx.shadowBlur = 8;
+      ctx.fillStyle = hpCol;
       ctx.fillRect(rx, top - bh, bw * (p.hp / p.maxHp), bh);
       // Shield
       ctx.fillStyle = '#111'; ctx.fillRect(rx, top + 3 * SC, bw, shh);
-      ctx.fillStyle = '#0099FF'; ctx.shadowColor = '#0099FF'; ctx.shadowBlur = 6;
+      ctx.fillStyle = '#0099FF';
       ctx.fillRect(rx, top + 3 * SC, bw * (p.shield / p.maxShield), shh);
-      ctx.shadowBlur = 0;
 
       // Dash cooldown arc under player
       if (p.dashCd > 0) {
         const pct = 1 - p.dashCd / 65;
         ctx.strokeStyle = `rgba(0,200,255,${pct * .8})`;
-        ctx.lineWidth = 2 * SC; ctx.shadowBlur = 0;
+        ctx.lineWidth = 2 * SC;
         ctx.beginPath();
         ctx.arc(p.x, p.y + 22 * SC, 7 * SC, -Math.PI / 2, -Math.PI / 2 + TAU * pct);
         ctx.stroke();
@@ -1287,7 +1310,7 @@
         else if (p.chain) { wn = 'CHAIN ↯'; wc = '#00FF88'; }
         ctx.font = `bold ${8 * SC}px Orbitron`;
         ctx.textAlign = 'center';
-        ctx.fillStyle = wc; ctx.shadowColor = wc; ctx.shadowBlur = 8;
+        ctx.fillStyle = wc;
         ctx.fillText(wn, W / 2, H - 18 * SC);
         // bar
         const tw = 90 * SC, th = 2.5 * SC, tx = (W - tw) / 2;
@@ -1454,18 +1477,22 @@
         ctx.globalAlpha = waveBannerAlpha;
         ctx.font = `bold ${20 * SC}px Orbitron`;
         ctx.textAlign = 'center';
-        ctx.fillStyle = '#00FFFF'; ctx.shadowColor = '#00FFFF'; ctx.shadowBlur = 22;
+        ctx.fillStyle = '#00FFFF';
         ctx.fillText(`WAVE ${wave} CLEARED`, W / 2, H / 2);
-        ctx.shadowBlur = 0; ctx.globalAlpha = 1;
+        ctx.globalAlpha = 1;
       }
 
       ctx.restore();
 
-      // Bloom post-process — draw bright areas from main canvas onto bloom canvas with blur
-      bloomCtx.clearRect(0, 0, W, H);
-      bloomCtx.filter = 'blur(12px) brightness(1.5)';
-      bloomCtx.drawImage(canvas, 0, 0);
-      bloomCtx.filter = 'none';
+      // Bloom post-process — downscaled for performance
+      frameCount++;
+      if (frameCount % 2 === 0) {
+        const bw = bloomCanvas.width, bh = bloomCanvas.height;
+        bloomCtx.clearRect(0, 0, bw, bh);
+        bloomCtx.filter = 'blur(4px) brightness(1.4)';
+        bloomCtx.drawImage(canvas, 0, 0, bw, bh);
+        bloomCtx.filter = 'none';
+      }
     }
 
     // ============================================================
