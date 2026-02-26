@@ -1,20 +1,28 @@
-# Quantum Rush
+# ▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓
 
-A fast-paced, sci-fi themed endless runner game. Jump over obstacles, collect coins, and try to achieve the highest score!
+`[SIGNAL ORIGIN: UNKNOWN]`
+`[CLEARANCE: ██████████]`
+`[STATUS: ACTIVE]`
 
-## Features
-- Smooth gameplay mechanics
-- Progressive difficulty
-- Collectible coins with particle effects
-- Sci-fi visual theme
-- Mobile-friendly controls
+```
+> ATTEMPTING HANDSHAKE...
+> AUTH REQUIRED ─── DENIED
+> BRUTE FORCE ──── DENIED
+> PACKET SNIFF ─── ████████
+>
+> CONNECTION TERMINATED BY HOST
+```
 
-## How to Play
-- Press SPACE or UP ARROW to jump
-- Press ESC to pause
-- Collect coins for bonus points
-- Avoid red spikes
-- Use platforms to reach higher areas
+You are not authorized to access this repository.
 
-## Development
-Built with vanilla JavaScript and HTML5 Canvas.
+All files are encrypted. All logs are purged. There is nothing here.
+
+**Do not attempt further access.**
+
+***
+
+```
+[END TRANSMISSION]
+[TRACE STATUS: INACTIVE]
+[SESSION: EXPIRED]
+```
